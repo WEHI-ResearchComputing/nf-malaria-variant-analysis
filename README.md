@@ -1,0 +1,1 @@
+# nf-malaria-variant-analysis
