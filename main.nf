@@ -107,5 +107,5 @@ workflow {
     bamlist_ch=WriteBamList(bam_ch.bamnodup.collect())
     bcf_ch=BCF(groupkey_bcf_ch,bamlist_ch,bam_ch.bamnodup.collect())
     
-    MultiQC(FastQC(bam_ch.bamnodup.collect()).zip.collect{ it[1] }.ifEmpty([]))  
+    MultiQC(FastQC(bam_ch.bamnodup.collect()).zip.collect().ifEmpty([]))  
 }
