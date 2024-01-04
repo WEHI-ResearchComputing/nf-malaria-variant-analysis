@@ -1,11 +1,11 @@
-process BWA {
+process Bwa {
 
     label 'BWAAlign'
     
     tag "${sampleId}"
     
     input:
-    tuple val(sampleId), val(groupId),val(fastqbase),val(ref)
+    tuple val(groupId),val(sampleId), val(fastqbase),val(ref)
     
   
     output:
@@ -56,7 +56,7 @@ process Merge{
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(mergedparent), val(parentbamlist), val(ref)
+    tuple  val(groupId),val(mergedparent), val(parentbamlist)
     path(bamnodup)
     
     output:
@@ -65,6 +65,28 @@ process Merge{
     script:
     """
     echo "SAM Merge"
-    samtools merge ${mergedparent} ${parentbamlist}
+    samtools merge -f ${mergedparent} ${parentbamlist}
+    """
+}
+
+process WriteBamLists {
+    label 'Write'
+
+    publishDir "${params.outdir}", mode: 'copy'
+    input:
+    path(sample_key)
+
+    output:
+    path("*_bams.txt")
+    
+    script:
+    """
+    {
+        read
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref; do
+            echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
+        done 
+    }< ${sample_key}
+     
     """
 }
