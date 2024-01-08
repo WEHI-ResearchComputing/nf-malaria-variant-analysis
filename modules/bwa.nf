@@ -9,7 +9,7 @@ process Bwa {
     
   
     output:
-    tuple val(sampleId), path("*.sam") 
+    tuple val(sampleId),val(groupId), path("*.sam") 
 
     script:
     """
@@ -27,12 +27,11 @@ process Index {
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple val(sampleId), path(samfile) 
+    tuple val(sampleId),val(groupId), path(samfile) 
     
   
     output:
-    val(sampleId), emit: sampleid 
-    path("*_nodup.bam"), emit: bamnodup
+    tuple val(groupId), val(sampleId), path("*_nodup.bam"), emit: bamnodup
     path("*_s.bam"), emit: bams
     path("*.metrics")
 
@@ -56,16 +55,16 @@ process Merge{
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(mergedparent), val(parentbamlist)
-    path(bamnodup)
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist)
+    tuple val(groupId), val(sampleId), path(bamnodup)
     
     output:
-    path("${mergedparent}")
+    tuple val(groupId),path("${parentId}.bam")
 
     script:
     """
     echo "SAM Merge"
-    samtools merge -f ${mergedparent} ${parentbamlist}
+    samtools merge -f ${parentId}.bam ${parentbamlist}
     """
 }
 

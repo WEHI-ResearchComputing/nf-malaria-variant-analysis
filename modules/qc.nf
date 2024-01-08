@@ -4,7 +4,7 @@ process FastQC {
     publishDir "${params.outdir}/QC", mode: 'copy'
 
     input:
-    path(bams)
+    tuple val(groupId), val(sampleId), path(bamnodup)
     
 
     output:

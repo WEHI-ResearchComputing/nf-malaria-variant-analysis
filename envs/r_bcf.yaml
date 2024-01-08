@@ -1,0 +1,21 @@
+name: rbcf_1
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-base
+  - r-tidyverse
+  - r-argparser
+  - r-stringr
+  - r-readr
+  - r-gridextra
+  - r-scales
+  - r-stringdist
+  - bioconductor-bsgenome
+  - bioconductor-qdnaseq
+  - bioconductor-biobase
+  - bioconductor-genomeintervals
+  - bioconductor-variantannotation
+  - bioconductor-genomicalignments
+  - bioconductor-qdnaseq
+  - bioconda::bioconductor-structuralvariantannotation
