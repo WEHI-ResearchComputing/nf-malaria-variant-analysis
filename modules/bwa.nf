@@ -31,8 +31,10 @@ process Index {
     
   
     output:
-    tuple val(groupId), val(sampleId), path("*_nodup.bam"), emit: bamnodup
-    path("*_s.bam"), emit: bams
+    val sampleId
+    tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
+    path("*_nodup.bam"), emit: nodup_bams
+    path("*_s.bam"), emit: s_bams
     path("*.metrics")
 
     script:
@@ -51,17 +53,18 @@ process Index {
 
 process Merge{
     label 'Samtools'
-    tag "${mergedparent}"
+    tag "${groupId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist)
-    tuple val(groupId), val(sampleId), path(bamnodup)
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref),val(parentId), val(parentbamlist)
+    path(bams)
     
     output:
     tuple val(groupId),path("${parentId}.bam")
 
     script:
+    
     """
     echo "SAM Merge"
     samtools merge -f ${parentId}.bam ${parentbamlist}
