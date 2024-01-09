@@ -95,12 +95,15 @@ workflow {
         return tuple(row.groupId,ref,refpath,prefix,bsref, row.parentId, parentbamlist) 
     }
     .set{groupkey_ch}
-    merged_ch=Merge(groupkey_ch,bam_ch.bamnodup.collect())
-    MultiQC(FastQC(bam_ch.bamnodup.collect()).zip.collect().ifEmpty([]))  
+    merged_ch=Merge(groupkey_ch,bam_ch.nodup_bams.collect())
+    //-----------------------------------------------------------------
+
+    //----------------QC tools------------------------------------------
+    MultiQC(FastQC(bam_ch.nodup_bams.collect()).zip.collect().ifEmpty([]))  
     //-----------------------------------------------------------------
 
     //----------------BCF tools----------------------------------------
-    bcf_ch=Bcf(groupkey_ch,bamlist_ch.collect(),bam_ch.bamnodup.collect())
+    bcf_ch=Bcf(groupkey_ch,bamlist_ch.collect(),bam_ch.nodup_bams.collect())
     //-----------------------------------------------------------------
 
     //----------------------Gridss------------------------------------- 
@@ -110,8 +113,8 @@ workflow {
                                         list.join(' ')
                                         })
     
-    combined_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
-    SomaticFilter(combined_ch,bamlist_ch.collect())
+    //combined_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
+    //SomaticFilter(combined_ch,bamlist_ch.collect())
     //-----------------------------------------------------------------
     //----------------------CopyNum------------------------------------- 
     //RCopyNum(bam_ch,merged_ch.collect(),groupkey_ch,Channel.fromPath(params.input_sample_key_file),Channel.fromPath(params.input_group_key_file))
