@@ -33,7 +33,7 @@ process Index {
     output:
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
-    path("*_nodup.bam"), emit: nodup_bams
+    path("*_nodup.bam"), emit: bam_4qc
     path("*_s.bam"), emit: s_bams
     path("*.metrics")
 
@@ -53,12 +53,14 @@ process Index {
 
 process Merge{
     label 'Samtools'
-    tag "${groupId}"
+    tag "${parentId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref),val(parentId), val(parentbamlist)
-    path(bams)
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist)
+    path(parentbams)
+    
+
     
     output:
     tuple val(groupId),path("${parentId}.bam")
@@ -77,6 +79,7 @@ process WriteBamLists {
     publishDir "${params.outdir}", mode: 'copy'
     input:
     path(sample_key)
+    path(group_key)
 
     output:
     path("*_bams.txt")
@@ -85,10 +88,39 @@ process WriteBamLists {
     """
     {
         read
+        while IFS=\$'\\t' read -r groupId	ref	parentId	parentbamlist; do
+            IFS=',' read -r -a array <<< "\$parentbamlist"
+            # Iterate over the array
+            for item in "\${array[@]}"; do
+                echo "\$item">> \$groupId"_bams.txt"
+            done
+        done 
+    }< ${group_key}
+    {
+        read
         while IFS=\$'\\t' read -r groupId sampleId fastqbase ref; do
             echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
         done 
     }< ${sample_key}
+    
      
+    """
+}
+
+process GetBamsByGroupID {
+    label 'Write'
+    publishDir "${params.outdir}/bam/groupIdFile", mode: 'copy' 
+
+    input:
+    path groupIdFile
+
+    output:
+    path "*.bam"
+
+    script:
+    """
+    cat ${groupIdFile} | while read bamfile; do
+        cp "\$bamfile" .
+    done
     """
 }
