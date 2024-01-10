@@ -106,21 +106,3 @@ process WriteBamLists {
      
     """
 }
-
-process GetBamsByGroupID {
-    label 'Write'
-    publishDir "${params.outdir}/bam/groupIdFile", mode: 'copy' 
-
-    input:
-    path groupIdFile
-
-    output:
-    path "*.bam"
-
-    script:
-    """
-    cat ${groupIdFile} | while read bamfile; do
-        cp "\$bamfile" .
-    done
-    """
-}
