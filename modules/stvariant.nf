@@ -14,7 +14,6 @@ process Bcf{
 
     
     output:
-    path("${groupId}${prefix}.bcf")
     path("${groupId}${prefix}.vcf")
 
 
@@ -22,11 +21,9 @@ process Bcf{
     """
     bcftools mpileup -Ou --max-depth 800 --threads ${task.cpus}  \
     -f ${ref}.fasta  \
-    --bam-list ${groupId}_bams.txt  | \
-    bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ob  \
-    --output ${groupId}${prefix}.bcf -
-    
-    bcftools view -Ov ${groupId}${prefix}.bcf > ${groupId}${prefix}.vcf
+    --bam-list ${bamlist}  | \
+    bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ov  \
+    --output ${groupId}${prefix}.vcf -
     """
 }
 
