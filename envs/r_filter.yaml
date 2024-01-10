@@ -1,4 +1,4 @@
-name: rbcf
+name: rfilter
 channels:
   - conda-forge
   - bioconda
@@ -8,13 +8,10 @@ dependencies:
   - r-argparser
   - r-stringr
   - r-readr
-  - r-gridextra
   - r-scales
   - r-stringdist
-  - bioconductor-bsgenome
-  - bioconductor-qdnaseq
-  - bioconductor-biobase
-  - bioconductor-genomeintervals
+  - r-r6
+  - r-ggplot2
   - bioconductor-variantannotation
   - bioconductor-genomicalignments
   - bioconductor-qdnaseq
