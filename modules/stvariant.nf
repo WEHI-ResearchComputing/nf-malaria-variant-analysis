@@ -12,7 +12,6 @@ process Bcf{
 
     
     output:
-    path("${groupId}${prefix}.bcf")
     path("${groupId}${prefix}.vcf")
 
 
