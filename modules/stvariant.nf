@@ -55,8 +55,8 @@ process Gridss{
 }
 
 process SomaticFilter{
-    label 'Gridss' 
     label 'Rfilter' 
+
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
@@ -64,18 +64,21 @@ process SomaticFilter{
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), path(vcf)
     path(bamlist)
 
-
     output:
     path("*.vcf*")
-    path("output.txt")
+    path("output.txt")    
+    stdout
     
-
     script:
     
     """
+    echo \$CONDA_PREFIX
     parentcount=\$(echo ${parentbamlist} | awk -F' ' '{print NF}')
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
+    echo "Installing R packages."
+    Rscript ${projectDir}/bin/installR.R
+    echo "All R packages installed. Start Somatic filter."
     Rscript ${projectDir}/bin/gridss_assets/gridss_somatic_filter.R \
         --input ${groupId}.vcf \
         --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf.bgz \
@@ -92,21 +95,33 @@ process SomaticFilter{
 }
 process RCopyNum {
     label 'Gridss' 
-    label 'Rcopynum' 
+    label 'Rfilter' 
 
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/copynumfiles", mode: 'copy'
     
     input:
-    path(bam)
+    val(dummy)
+    // tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
+    //         path(bams), 
+    //         val(bamfilenames),
+    //         path(parentbams)
 
     output:
-    path("*.rds"), optional:true
+    stdout
+    //path("*.rds"), optional:true
 
     script:
     """
-    Rscript ${projectDir}/bin/Rlibs/forgeBSgenomeDd2.R
+    echo ${dummy}
+    Rscript ${projectDir}/bin/installR.R
+    
     """
+    // Rscript malDrugR/copynumQDNAseqParents.R \
+    //     --samplegroup ${groupId} \
+    //     --parentId ${parentId} \
+    //     --bams ${bamfilenames} \
+    //     --bin_in_kbases ${params.bin_in_kbases}
     // Rscript ${projectDir}/bin/Rlibs/forgeBSplasmo52.R
 
 }

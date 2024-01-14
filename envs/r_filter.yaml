@@ -4,6 +4,7 @@ channels:
   - bioconda
 dependencies:
   - r-base
+  - r-devtools
   - r-tidyverse
   - r-argparser
   - r-stringr
@@ -12,7 +13,11 @@ dependencies:
   - r-stringdist
   - r-r6
   - r-ggplot2
+  - bioconductor-bsgenome
+  - bioconductor-qdnaseq
   - bioconductor-variantannotation
   - bioconductor-genomicalignments
   - bioconductor-qdnaseq
   - bioconda::bioconductor-structuralvariantannotation
+  - bioconda::bioconductor-biocparallel
+  - bioconda::bioconductor-rtracklayer

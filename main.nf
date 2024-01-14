@@ -58,7 +58,8 @@ workflow {
         return tuple(row.groupId,row.sampleId, row.fastqbase,ref) 
     }
     .set{samplekey_ch}
-    bamlist_ch=WriteBamLists(Channel.fromPath(params.input_sample_key_file,checkIfExists:true))
+    bamlist_ch=WriteBamLists(Channel.fromPath(params.input_sample_key_file,checkIfExists:true),
+                    Channel.fromPath(params.input_group_key_file,checkIfExists:true))
     sam_ch=Bwa(samplekey_ch)
     bam_ch=Index(sam_ch)
     //-----------------------------------------------------------------
@@ -95,28 +96,46 @@ workflow {
         return tuple(row.groupId,ref,refpath,prefix,bsref, row.parentId, parentbamlist) 
     }
     .set{groupkey_ch}
-    merged_ch=Merge(groupkey_ch,bam_ch.nodup_bams.collect())
+    //Explain: .bamnodup.groupTuple() group tuples by the first value(groupid) 
+    //Explain: then combine with groupkey_ch based on groupid
+    allbams_grouped_ch=groupkey_ch.join(bam_ch.bamnodup.groupTuple(), by: 0,remainder:true)
+    bam_bygroup_ch=allbams_grouped_ch.map{tuple-> if (tuple[1]!=null)
+                            return tuple
+                        }
+    parentbam_ch=allbams_grouped_ch.map{tuple-> if (tuple[1]==null)
+        return tuple[2]
+    }
+    merged_ch=Merge(groupkey_ch,parentbam_ch.collect())
     //-----------------------------------------------------------------
 
     //----------------QC tools------------------------------------------
-    MultiQC(FastQC(bam_ch.nodup_bams.collect()).zip.collect().ifEmpty([]))  
+    MultiQC(FastQC(bam_ch.bam_4qc.collect()).zip.collect().ifEmpty([]))  
     //-----------------------------------------------------------------
 
     //----------------BCF tools----------------------------------------
-    bcf_ch=Bcf(groupkey_ch,bamlist_ch.collect(),bam_ch.nodup_bams.collect())
+    bcf_ch=Bcf(bam_bygroup_ch.join(bamlist_ch.flatten()
+                                .map{filepath ->
+                                    def groupid = filepath.baseName.split('_bam')[0]  // Splits the filename and takes the first part
+                                    return tuple(groupid, filepath)  // Returns a tuple of the groupid and the original filepath
+                                },by:0).combine(parentbam_ch.collect().toList()))
     //-----------------------------------------------------------------
 
     //----------------------Gridss------------------------------------- 
-    sv_ch=Gridss(groupkey_ch,bamlist_ch.collect(),
-            bam_ch.bamnodup.collect(),
-            bam_ch.bamnodup.collect().map { list ->
-                                        list.join(' ')
-                                        })
     
-    //combined_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
-    //SomaticFilter(combined_ch,bamlist_ch.collect())
+    gridss_combined_ch=bam_bygroup_ch.join(bamlist_ch.flatten().map{filepath ->
+        def filename = filepath.baseName  // Extracts the filename without the path and extension
+        def groupid = filename.split('_bam')[0]  // Splits the filename and takes the first part
+        def fileLines = filepath.readLines() // Reads the file lines into a list
+        def fileContents = fileLines.join(' ') // Joins the lines with a space
+        return tuple(groupid, fileContents)  // Returns a tuple of the groupid and the original filepath
+    },by:0)
+    sv_ch=Gridss(gridss_combined_ch.combine(parentbam_ch.collect().toList()))
+    
+    combined_sv_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
+    SomaticFilter(combined_sv_ch,bamlist_ch.collect())
     //-----------------------------------------------------------------
     //----------------------CopyNum------------------------------------- 
     //RCopyNum(bam_ch,merged_ch.collect(),groupkey_ch,Channel.fromPath(params.input_sample_key_file),Channel.fromPath(params.input_group_key_file))
+    //RCopyNum(Channel.of("dummy"))
     //-----------------------------------------------------------------
 }
