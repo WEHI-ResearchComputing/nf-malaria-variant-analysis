@@ -13,11 +13,14 @@ dependencies:
   - r-stringdist
   - r-r6
   - r-ggplot2
-  - bioconductor-bsgenome
-  - bioconductor-qdnaseq
-  - bioconductor-variantannotation
-  - bioconductor-genomicalignments
-  - bioconductor-qdnaseq
-  - bioconda::bioconductor-structuralvariantannotation
+  - bioconda::bioconductor-biobase
   - bioconda::bioconductor-biocparallel
+  - bioconda::bioconductor-bsgenome
+  - bioconda::bioconductor-qdnaseq
+  - bioconda::bioconductor-variantannotation
+  - bioconda::bioconductor-genomeinfodb 
+  - bioconda::bioconductor-sparsearray 
+  - bioconda::bioconductor-genomicalignments 
+  - bioconda::bioconductor-structuralvariantannotation
   - bioconda::bioconductor-rtracklayer
+  

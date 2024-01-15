@@ -22,6 +22,7 @@ include { Bcf } from './modules/stvariant.nf'
 include { Gridss } from './modules/stvariant.nf'
 include { SomaticFilter } from './modules/stvariant.nf'
 include { RCopyNum } from './modules/stvariant.nf'
+include { InstallR } from './modules/stvariant.nf'
 include{ FastQC } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
@@ -132,10 +133,12 @@ workflow {
     sv_ch=Gridss(gridss_combined_ch.combine(parentbam_ch.collect().toList()))
     
     combined_sv_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
-    SomaticFilter(combined_sv_ch,bamlist_ch.collect())
+    dummy_ch=InstallR()
+    sfilter_ch=SomaticFilter(combined_sv_ch,bamlist_ch.collect(),dummy_ch)
     //-----------------------------------------------------------------
     //----------------------CopyNum------------------------------------- 
-    //RCopyNum(bam_ch,merged_ch.collect(),groupkey_ch,Channel.fromPath(params.input_sample_key_file),Channel.fromPath(params.input_group_key_file))
+    RCopyNum(gridss_combined_ch.join(merged_ch,by:0),
+        dummy_ch)
     //RCopyNum(Channel.of("dummy"))
     //-----------------------------------------------------------------
 }

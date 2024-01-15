@@ -53,7 +53,7 @@ process Index {
 
 process Merge{
     label 'Samtools'
-    tag "${parentId}"
+    tag "${groupId}-${parentId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:

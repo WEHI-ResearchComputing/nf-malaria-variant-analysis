@@ -54,6 +54,21 @@ process Gridss{
     """
 }
 
+process InstallR{
+    label 'Rfilter' 
+
+    output:
+    val("1"), emit: dummy 
+    
+    script:
+    
+    """
+    echo \$CONDA_PREFIX
+    echo "Installing R packages."
+    Rscript ${projectDir}/bin/installR.R    
+    """
+}
+
 process SomaticFilter{
     label 'Rfilter' 
 
@@ -63,11 +78,11 @@ process SomaticFilter{
     input:
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), path(vcf)
     path(bamlist)
+    val(dummy)
 
     output:
     path("*.vcf*")
-    path("output.txt")    
-    stdout
+    path("output.txt")
     
     script:
     
@@ -76,9 +91,8 @@ process SomaticFilter{
     parentcount=\$(echo ${parentbamlist} | awk -F' ' '{print NF}')
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
-    echo "Installing R packages."
-    Rscript ${projectDir}/bin/installR.R
-    echo "All R packages installed. Start Somatic filter."
+   
+    echo "Start Somatic filter."
     Rscript ${projectDir}/bin/gridss_assets/gridss_somatic_filter.R \
         --input ${groupId}.vcf \
         --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf.bgz \
@@ -94,35 +108,35 @@ process SomaticFilter{
     """
 }
 process RCopyNum {
-    label 'Gridss' 
     label 'Rfilter' 
 
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/copynumfiles", mode: 'copy'
     
     input:
+   
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
+            path(bams), 
+            val(bamfilenames),
+            path(parentbams)
     val(dummy)
-    // tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
-    //         path(bams), 
-    //         val(bamfilenames),
-    //         path(parentbams)
 
     output:
     stdout
-    //path("*.rds"), optional:true
+    path("*.rds")
 
     script:
     """
-    echo ${dummy}
-    Rscript ${projectDir}/bin/installR.R
+    echo ${groupId},${bsref},${dummy}
+    Rscript ${projectDir}/bin/malDrugR/copynumQDNAseqParents_mod.R \
+        --samplegroup ${groupId} \
+        --parentId ${parentId} \
+        --bams "${bamfilenames}" \
+        --bin_in_kbases ${params.bin_in_kbases} \
+        --reference ${ref} --refDir ${refpath}\
+        --bsref ${bsref}
     
     """
-    // Rscript malDrugR/copynumQDNAseqParents.R \
-    //     --samplegroup ${groupId} \
-    //     --parentId ${parentId} \
-    //     --bams ${bamfilenames} \
-    //     --bin_in_kbases ${params.bin_in_kbases}
-    // Rscript ${projectDir}/bin/Rlibs/forgeBSplasmo52.R
 
 }
 
@@ -143,11 +157,12 @@ process FilterBcfVcf {
     script:
     """
     Rscript ${projectDir}/bin/malDrugR/filterBcfVcf.R \
-        --samplegroup $samplegroup \
+        --samplegroup ${samplegroup} \
         --vardir ./ \
-        --groupkeyfile $groupkeyfile \
+        --groupkeyfile ${groupkeyfile} \
         --QUALcrit ${params.qualcrit} \
-        --critsamplecount ${params.critsamplecount}
+        --critsamplecount ${params.critsamplecount} 
+        
     """
 }
 
