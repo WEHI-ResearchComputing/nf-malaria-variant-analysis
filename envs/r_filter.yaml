@@ -21,6 +21,7 @@ dependencies:
   - bioconda::bioconductor-genomeinfodb 
   - bioconda::bioconductor-sparsearray 
   - bioconda::bioconductor-genomicalignments 
+  - bioconda::bioconductor-genomeintervals
   - bioconda::bioconductor-structuralvariantannotation
   - bioconda::bioconductor-rtracklayer
   

@@ -11,10 +11,8 @@ process Bcf{
             path(bamlist),
             path(parentbams)
     
-
-    
     output:
-    path("${groupId}${prefix}.vcf")
+    tuple  val(groupId), path("${groupId}.vcf")
 
 
     script:
@@ -23,7 +21,7 @@ process Bcf{
     -f ${ref}.fasta  \
     --bam-list ${bamlist}  | \
     bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ov  \
-    --output ${groupId}${prefix}.vcf -
+    --output "${groupId}.vcf" -
     """
 }
 
@@ -141,26 +139,32 @@ process RCopyNum {
 }
 
 process FilterBcfVcf {
-    label 'Rbcf'    
+    label 'Rfilter'  
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
-    
+    cache false
+
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist)
-    path(groupkeyfile)
-    path(vcfs)
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
+            path(vcf),
+            path(bams),
+            path(bai),
+            path (parentbams),
+            path (parentindices)
 
     output:
-    path "*.tsv"
-    path "*.vcf"
+    path "*.tsv", emit: tsv 
+    path "*plus*.Qcrit*.vcf", emit: vcf
 
     script:
     """
-    Rscript ${projectDir}/bin/malDrugR/filterBcfVcf.R \
-        --samplegroup ${samplegroup} \
-        --vardir ./ \
-        --groupkeyfile ${groupkeyfile} \
+    
+    Rscript ${projectDir}/bin/malDrugR/filterBcfVcf_mod.R \
+        --samplegroup ${groupId} \
+        --refpath ${refpath} \
+        --refstrain ${prefix} \
         --QUALcrit ${params.qualcrit} \
+        --parentlist "${parentbamlist}"\
         --critsamplecount ${params.critsamplecount} 
         
     """
@@ -170,8 +174,19 @@ process MajorityFilter {
     label 'Rbcf'    
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
+
+    cache false
+
     script:
     """
+    Rscript ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
+        --samplegroup ${groupId} \
+        --refpath ${refpath} \
+        --refstrain ${prefix} \
+        --QUALcrit ${params.qualcrit} \
+        --parentlist "${parentbamlist}"\
+        --critsamplecount ${params.critsamplecount} 
+        
     """
 }
 
@@ -180,7 +195,9 @@ process Plot {
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
     script:
+
     """
+
     """
 }
 

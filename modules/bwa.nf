@@ -28,11 +28,11 @@ process Index {
     
     input:
     tuple val(sampleId),val(groupId), path(samfile) 
-    
   
     output:
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
+    tuple val(groupId), path("*_nodup*bai"), emit: bai
     path("*_nodup.bam"), emit: bam_4qc
     path("*_s.bam"), emit: s_bams
     path("*.metrics")

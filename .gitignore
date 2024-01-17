@@ -163,3 +163,16 @@ cython_debug/
 *.dot
 *.tsv
 .nextflow/*
+bin/2.batchbcf.sh
+.gitignore
+bin/2.gridss_run.sh
+bin/2.fastQC.sh
+bin/bwa.sh
+bin/fastq2bam_bwamemDd2.sh
+bin/fastq2bam_bwamem.sh
+bin/gridss_old
+bin/mergebams.sh
+bin/sam_bcf_variants.sh
+bin/sam_bcf_variantsDd2.sh
+*.Rhistory
+bin/malDrugR/copynumQDNAseqParents.R

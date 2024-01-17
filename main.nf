@@ -23,6 +23,8 @@ include { Gridss } from './modules/stvariant.nf'
 include { SomaticFilter } from './modules/stvariant.nf'
 include { RCopyNum } from './modules/stvariant.nf'
 include { InstallR } from './modules/stvariant.nf'
+include { FilterBcfVcf } from './modules/stvariant.nf'
+include { MajorityFilter } from './modules/stvariant.nf'
 include{ FastQC } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
@@ -85,13 +87,13 @@ workflow {
         if (row.ref =="3D7") {
             refpath=params.ref3D7_path
             ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-            prefix="_3D7ref"
+            prefix=row.ref
             bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
         }        
         else if (row.ref =="Dd2") {
             refpath=params.refDd2_path_path
             ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-            prefix="_Dd2ref"
+            prefix=row.ref
             bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
         }
         return tuple(row.groupId,ref,refpath,prefix,bsref, row.parentId, parentbamlist) 
@@ -135,10 +137,31 @@ workflow {
     combined_sv_ch=groupkey_ch.join(sv_ch.vcf, by: 0)
     dummy_ch=InstallR()
     sfilter_ch=SomaticFilter(combined_sv_ch,bamlist_ch.collect(),dummy_ch)
-    //-----------------------------------------------------------------
-    //----------------------CopyNum------------------------------------- 
+    //-------------------------------------------------------------------
+    //----------------------CopyNum--------------------------------------
     RCopyNum(gridss_combined_ch.join(merged_ch,by:0),
         dummy_ch)
-    //RCopyNum(Channel.of("dummy"))
-    //-----------------------------------------------------------------
+    //-------------------------------------------------------------------
+    //----------------------filter BCF----------------------------------- 
+    parent_index_ch=groupkey_ch
+                    .join(bcf_ch, by:0)
+                    .join(bam_ch.bai.groupTuple(),by:0,remainder:true)
+                    .map{
+                        tuple-> if (tuple[1]==null)
+                                return tuple[2]
+                    }.collect().toList()               
+
+    FilterBcfVcf(
+        groupkey_ch.join(bcf_ch, by:0)
+        .join(bam_ch.bamnodup.groupTuple(),by:0)
+        .join(bam_ch.bai.groupTuple(),by:0)
+        .combine(parentbam_ch.collect().toList())
+        .combine(parent_index_ch)
+    )
+ 
+    //-------------------------------------------------------------------
+    //----------------------Majority filter----------------------------------- 
+    
+    //-------------------------------------------------------------------
+
 }
