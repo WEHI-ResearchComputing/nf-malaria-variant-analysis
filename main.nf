@@ -156,13 +156,14 @@ workflow {
         .join(bam_ch.bamnodup.groupTuple(),by:0)
         .join(bam_ch.bai.groupTuple(),by:0)
         .combine(parentbam_ch.collect().toList())
-        .combine(parent_index_ch)
+        .combine(parent_index_ch),
+        dummy_ch
     )
  
     //-------------------------------------------------------------------
     //----------------------Majority filter----------------------------------- 
     MajorityFilter(groupkey_ch
-                    .join(smfilter_ch.vcf,by:0)
+                    .join(smfilter_ch.vcf,by:0),dummy_ch
                   )
 
     //-------------------------------------------------------------------

@@ -151,6 +151,7 @@ process FilterBcfVcf {
             path(bai),
             path (parentbams),
             path (parentindices)
+    val(dummy)
 
     output:
     path "*.tsv", emit: tsv 
@@ -180,7 +181,8 @@ process MajorityFilter {
     input:
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
         path(vcf)
-
+    val(dummy)
+    
     output:
     tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
     tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
