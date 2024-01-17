@@ -1,0 +1,174 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
+    "title": ". pipeline parameters",
+    "description": "",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "outdir",
+                "input_group_key_file",
+                "input_seq_path",
+                "input_sample_key_file"
+            ],
+            "properties": {
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+                    "fa_icon": "fas fa-folder-open"
+                },
+                "input_group_key_file": {
+                    "type": "string",
+                    "default": "/vast/projects/malaria/MadelineDec2023/group_key.txt"
+                },
+                "input_seq_path": {
+                    "type": "string",
+                    "default": "/vast/scratch/users/iskander.j/prep_data/sh_400000"
+                },
+                "input_sample_key_file": {
+                    "type": "string",
+                    "default": "/vast/projects/malaria/MadelineDec2023/sample_key.txt"
+                }
+            }
+        },
+        "institutional_config_options": {
+            "title": "Institutional config options",
+            "type": "object",
+            "fa_icon": "fas fa-university",
+            "description": "Parameters used to describe centralised config profiles. These should not be edited.",
+            "help_text": "The centralised nf-core configuration profiles use a handful of pipeline parameters to describe themselves. This information is then printed to the Nextflow log when you run a pipeline. You should not need to change these values when you run a pipeline.",
+            "properties": {
+                "config_profile_description": {
+                    "type": "string",
+                    "description": "Institutional config description.",
+                    "fa_icon": "fas fa-users-cog",
+                    "hidden": true
+                },
+                "config_profile_contact": {
+                    "type": "string",
+                    "description": "Institutional config contact information.",
+                    "fa_icon": "fas fa-users-cog",
+                    "hidden": true
+                },
+                "config_profile_url": {
+                    "type": "string",
+                    "description": "Institutional config URL link.",
+                    "fa_icon": "fas fa-users-cog",
+                    "hidden": true
+                }
+            }
+        },
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "fa_icon": "fas fa-file-import",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+            "properties": {
+                "multiqc_config": {
+                    "type": "string",
+                    "description": "Custom config file to supply to MultiQC.",
+                    "fa_icon": "fas fa-cog",
+                    "hidden": true
+                }
+            }
+        },
+        "max_job_request_options": {
+            "title": "Max job request options",
+            "type": "object",
+            "fa_icon": "fab fa-acquisitions-incorporated",
+            "description": "Set the top limit for requested resources for any single job.",
+            "help_text": "If you are running on a smaller system, a pipeline step requesting more resources than are available may cause the Nextflow to stop the run with an error. These options allow you to cap the maximum resources requested by any single job so that the pipeline will run on your system.\n\nNote that you can not _increase_ the resources requested by any job using these options. For that you will need your own configuration file. See [the nf-core website](https://nf-co.re/usage/configuration) for details.",
+            "properties": {
+                "max_cpus": {
+                    "type": "integer",
+                    "description": "Maximum number of CPUs that can be requested for any single job.",
+                    "default": 16,
+                    "fa_icon": "fas fa-microchip",
+                    "hidden": true,
+                    "help_text": "Use to set an upper-limit for the CPU requirement for each process. Should be an integer e.g. `--max_cpus 1`"
+                },
+                "max_memory": {
+                    "type": "string",
+                    "description": "Maximum amount of memory that can be requested for any single job.",
+                    "default": "128.GB",
+                    "fa_icon": "fas fa-memory",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "hidden": true,
+                    "help_text": "Use to set an upper-limit for the memory requirement for each process. Should be a string in the format integer-unit e.g. `--max_memory '8.GB'`"
+                },
+                "max_time": {
+                    "type": "string",
+                    "description": "Maximum amount of time that can be requested for any single job.",
+                    "default": "240.h",
+                    "fa_icon": "far fa-clock",
+                    "pattern": "^(\\d+\\.?\\s*(s|m|h|day)\\s*)+$",
+                    "hidden": true,
+                    "help_text": "Use to set an upper-limit for the time requirement for each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`"
+                }
+            }
+        },
+        "reference": {
+            "title": "Reference",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "ref3D7_path": {
+                    "type": "string",
+                    "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/reference_genomes/plasmodium/PlasmoDB-52_Pfalciparum3D7"
+                },
+                "refDd2_path": {
+                    "type": "string",
+                    "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/reference_genomes/plasmodium/PlasmoDB-57_PfalciparumDd2"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/institutional_config_options"
+        },
+        {
+            "$ref": "#/definitions/generic_options"
+        },
+        {
+            "$ref": "#/definitions/max_job_request_options"
+        },
+        {
+            "$ref": "#/definitions/reference"
+        }
+    ],
+    "properties": {
+        "bin_in_kbases": {
+            "type": "integer",
+            "default": 1
+        },
+        "qualcrit": {
+            "type": "integer",
+            "default": 50
+        },
+        "critsamplecount": {
+            "type": "integer",
+            "default": 1
+        },
+        "gridss_jar_path": {
+            "type": "string",
+            "default": "/vast/projects/malaria/nf-malaria-variant-analysis/bin/gridss_assets/gridss-2.13.2-gridss-jar-with-dependencies.jar"
+        }
+    },
+    "required": [
+        "bin_in_kbases",
+        "qualcrit",
+        "critsamplecount"
+    ]
+}
