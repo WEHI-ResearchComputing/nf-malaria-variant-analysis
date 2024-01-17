@@ -176,3 +176,9 @@ bin/sam_bcf_variants.sh
 bin/sam_bcf_variantsDd2.sh
 *.Rhistory
 bin/malDrugR/copynumQDNAseqParents.R
+bin/malDrugR/copynumPlots.R
+bin/malDrugR/filterBcfVcf.R
+bin/Rlibs
+bin/Rlibs
+
+bin/malDrugR/gridss_majorityfilt.R

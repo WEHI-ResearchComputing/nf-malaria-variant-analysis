@@ -72,14 +72,14 @@ process SomaticFilter{
 
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
-
+    
     input:
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), path(vcf)
     path(bamlist)
     val(dummy)
 
     output:
-    path("*.vcf*")
+    tuple val(groupId),path("${groupId}_high_and_imprecise.vcf"), emit:vcf
     path("output.txt")
     
     script:
@@ -97,7 +97,8 @@ process SomaticFilter{
         --scriptdir ${projectDir}/bin/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
-    bgzip -dc ${groupId}_high_and_low_confidence_somatic.vcf.bgz | awk  \
+    module load gzip
+    gzip -dc ${groupId}_high_and_low_confidence_somatic.vcf.bgz.bgz | awk  \
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
 
@@ -142,7 +143,6 @@ process FilterBcfVcf {
     label 'Rfilter'  
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
-    cache false
 
     input:
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
@@ -171,20 +171,27 @@ process FilterBcfVcf {
 }
 
 process MajorityFilter {
-    label 'Rbcf'    
+    label 'Rfilter'    
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
     cache false
 
+    input:
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
+        path(vcf)
+
+    output:
+    tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
+    tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
+ 
+
     script:
     """
     Rscript ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
+        --scriptdir ${projectDir}/bin/gridss_assets/ \
         --samplegroup ${groupId} \
-        --refpath ${refpath} \
-        --refstrain ${prefix} \
-        --QUALcrit ${params.qualcrit} \
-        --parentlist "${parentbamlist}"\
+        --parentlist "${parentbamlist}" \
         --critsamplecount ${params.critsamplecount} 
         
     """

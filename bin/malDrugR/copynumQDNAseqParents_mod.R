@@ -22,7 +22,6 @@ argp <- add_argument(argp, "--samplegroup",
                      help = "Group name of related samples. Required"
 )
 argp <- add_argument(argp, "--parentId",
-                     default = "sample_key.txt",
                      help = "Parent ID of the group."
 )
 argp <- add_argument(argp, "--bams",
