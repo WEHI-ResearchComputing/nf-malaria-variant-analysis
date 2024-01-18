@@ -12,8 +12,8 @@
             "description": "Define where the pipeline should find input data and save output data.",
             "required": [
                 "outdir",
-                "input_group_key_file",
                 "input_seq_path",
+                "input_group_key_file",
                 "input_sample_key_file"
             ],
             "properties": {
@@ -23,17 +23,20 @@
                     "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
                     "fa_icon": "fas fa-folder-open"
                 },
-                "input_group_key_file": {
-                    "type": "string",
-                    "default": "/vast/projects/malaria/MadelineDec2023/group_key.txt"
-                },
                 "input_seq_path": {
                     "type": "string",
-                    "default": "/vast/scratch/users/iskander.j/prep_data/sh_400000"
+                    "default": "/vast/scratch/users/iskander.j/prep_data/sh_400000",
+                    "format": "directory-path"
+                },
+                "input_group_key_file": {
+                    "type": "string",
+                    "default": "/vast/projects/malaria/MadelineDec2023/group_key.txt",
+                    "format": "file-path"
                 },
                 "input_sample_key_file": {
                     "type": "string",
-                    "default": "/vast/projects/malaria/MadelineDec2023/sample_key.txt"
+                    "default": "/vast/projects/malaria/MadelineDec2023/sample_key.txt",
+                    "format": "file-path"
                 }
             }
         },
