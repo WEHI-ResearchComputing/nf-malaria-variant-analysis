@@ -31,9 +31,6 @@ argp <- add_argument(argp, "--bin_in_kbases",
                      default = "1",
                      help = "bin size in kbp"
 )
-argp <- add_argument(argp, "--reference",
-                     help = "reference name without .fasta"
-)
 argp <- add_argument(argp, "--refDir",
                      help = "reference directory "
 )
@@ -56,17 +53,6 @@ refDir <- argv$refDir
 strainbamL <- strsplit(argv$bams, " ")[[1]]
 strainbamL <- strainbamL[!grepl(parentID, strainbamL)]
 sampleL <- sub("_nodup\\.bam$", "", strainbamL)
-
-
-
-
-print(strain)
-print(strainbamL)
-print(parentID)
-print(refDir)
-print(argv$bin_in_kbases)
-print(argv$reference)
-print(argv$bsref)
 
 library(argv$bsref,
   character.only = TRUE
