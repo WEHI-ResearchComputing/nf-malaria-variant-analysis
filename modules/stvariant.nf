@@ -121,12 +121,10 @@ process RCopyNum {
     val(dummy)
 
     output:
-    stdout
-    path("*.rds")
+    tuple val(groupId), path("*.rds")
 
     script:
     """
-    echo ${groupId},${bsref},${dummy}
     Rscript ${projectDir}/bin/malDrugR/copynumQDNAseqParents_mod.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
@@ -176,7 +174,6 @@ process MajorityFilter {
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
-    cache false
 
     input:
     tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
@@ -199,14 +196,27 @@ process MajorityFilter {
     """
 }
 
-process Plot {
-    label 'Rbcf'    
+process RPlot {
+    label 'Rfilter'    
     tag "${groupId}"   
-    publishDir "${params.outdir}/variants/SVs", mode: 'copy'
+    
+    publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
+    
+    input:
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
+        path(rds)
+
+    output:
+    tuple val(groupId), path("*.pdf")
+
     script:
-
     """
-
+    Rscript ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
+        --samplegroup ${groupId} \
+        --parentId ${parentId} \
+        --strain ${prefix} \
+        --refDir ${refpath} \
+        --bin_in_kbases ${params.bin_in_kbases} 
     """
 }
 

@@ -1,51 +1,60 @@
 ## Read stored copy numbers from copynumQDNAseqParents.R, and make plots
 ## Basically same as version in Madeline 2022
 
-library(tidyverse)
-library("QDNAseq"); library("Biobase")
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library("QDNAseq"))
+suppressPackageStartupMessages(library("Biobase"))
 theme_set(theme_bw())
 pdf.options(useDingbats=FALSE)
 ## This should remove need for 'useDingbats=FALSE' in ggsave commands.
 # Alternative solution is to edit fonts used by Illustrator
 
-library(gridExtra)  # to arrange the 14 chromosomes in 2 rows
-library(scales)     # Need the scales package for log2 transform
+suppressPackageStartupMessages(library(gridExtra))  # to arrange the 14 chromosomes in 2 rows
+suppressPackageStartupMessages(library(scales) )   # Need the scales package for log2 transform
+suppressPackageStartupMessages(library(argparser))
 
-PAPDIR <- "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects" 
-
-pfCurrRefs <- data.frame(
-    strain = c( '3D7', 'Dd2' ),
-    version = c( '52', '57' )
+#### Read command-line arguments ####
+argp <- arg_parser(paste(
+  "Read stored copy numbers, and make plots."
+))
+argp <- add_argument(argp, "--samplegroup",
+                     help = "Group name of related samples. Required"
 )
-ref <- pfCurrRefs[1,]
-refDir <- file.path( 
-    PAPDIR, "reference_genomes", "plasmodium",
-    paste0( "PlasmoDB-", ref$version, "_Pfalciparum", ref$strain) )
-WORKDIR <- "/vast/scratch/users/penington.j/malaria"
-alignDir <- file.path( WORKDIR, "alignbwa" )
-cnDir <- file.path( WORKDIR, "variants", "copynumfiles")
-setwd( WORKDIR )
-plotDir <- file.path( WORKDIR, "variants", "copynumPlots")
-if( !dir.exists( plotDir ) ){ dir.create( plotDir ) }
+argp <- add_argument(argp, "--parentId",
+                     help = "parent name of related samples. Required"
+)
+argp <- add_argument(argp, "--strain",
+                     help = "strain name of related samples (3D7 or Dd2). Required"
+)
+argp <- add_argument(argp, "--refDir",
+                     help = "reference directory "
+)
+argp <- add_argument(argp, "--bin_in_kbases",
+                     default = "1",
+                     help = "bin size in kbp"
+)
 
-bin_in_kbases <- "5"
+argv <- parse_args(argp)
+refDir <- argv$refDir
+
+bin_in_kbases <- argv$bin_in_kbases
 ## Parent samples and samples of interest
-parentName <- 'S107' 
-analysis <- 'S108vsS107'
-strain <- # read sample_key
+parentId <- argv$parentId 
+groupId <- argv$samplegroup
+strain <- argv$strain
 
 #### Read stored results ####
 copyNumsNormed <- readRDS( file.path(
-    cnDir, paste0( analysis, '_cn_', bin_in_kbases, 'k.rds')
-) )
-scaled_df <- readRDS(
-    file.path(cnDir, 
-              paste0(analysis, ".CN_compare_df_", 
-                     bin_in_kbases, "k", ".rds"))) 
+                    paste0( groupId, '_cn_', bin_in_kbases, 'k.rds')
+                ) )
+scaled_df <- readRDS(file.path( 
+                    paste0(groupId, ".CN_compare_df_", 
+                     bin_in_kbases, "k", ".rds")
+                )) 
 ## Remove Apical and Mitochondrial genome bins from data if present, 
 ## and re-read data later for mito inspection. Genomes too small to show on 
 ## same plot as nuclear
-if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
+if(strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
 } else {nonNuc <- c('Pf3D7_API_v3', 'Pf3D7_MIT_v3') }
 
 scaled_df <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
@@ -54,7 +63,7 @@ scaled_df <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) )
 ## No strain name, just analysis name, or optional input
 sampleL <- colnames( scaled_df )[which( 
     str_detect( colnames( scaled_df ), strain ) ) ] %>%
-    str_remove( paste( ' vs.', parentName ) )
+    str_remove( paste( ' vs.', parentId ) )
 ## - str_detect(..., strain) doesn't work when not all have strain as prefix
 
 #### Define functions ####
@@ -114,7 +123,7 @@ plotWholeCN <- function(bin_df, bin_size, maxCN){
     bin_df <- reshape2::melt(
         bin_df, id.vars = c("chrom", "range", "start", "end", "pos"),
         variable.name = "sample", value.name = "copynum") 
-    bin_df$sample <-  sub(paste( " vs.", parentName), "",bin_df$sample)
+    bin_df$sample <-  sub(paste( " vs.", parentId), "",bin_df$sample)
     chromlist <- unique(bin_df$chrom)
     if (missing(maxCN)) maxCN <- ceiling( max(na.omit(bin_df$copynum)) )
     smaller_df <- 
@@ -142,7 +151,7 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
     chromOI <- pivot_longer(bin_df[bin_df$chrom==chro, ],
                             cols = !c("chrom", "range", "start", "end"), 
                             names_to = "sample", values_to = "copynum")
-    chromOI$sample <-  sub(paste(" vs.", parentName), "",chromOI$sample)
+    chromOI$sample <-  sub(paste(" vs.", parentId), "",chromOI$sample)
     # set undefined copynum (presumed 0/0) to 1, and mark with a different line-type
     chromOI$naCN <- is.na(chromOI$copynum)
     chromOI$copynum[is.na(chromOI$copynum)] <- 1  
@@ -167,7 +176,7 @@ allCN <- convertQDNAtoDF(copyNumsNormed) %>%
     dplyr::filter( !(chrom %in% nonNuc) )
 
 plotset <- arrangeGrob(
-    grobs = lapply(c( parentName, sampleL[order(sampleL)] ), function(samplen)
+    grobs = lapply(c( parentId, sampleL[order(sampleL)] ), function(samplen)
     { plotLogRow(allCN, paste(samplen ) , bin_in_kbases
                  , maxCN = 2^5, minCN = 2^-2
     ) + theme(title = element_text(size = 8),
@@ -176,10 +185,10 @@ plotset <- arrangeGrob(
         }),
     ncol = 1)
 plot(plotset)
-ggsave( plotset, filename = file.path(
-    plotDir, paste0(analysis, "_copynums_", 
+ggsave( plotset, filename = file.path(paste0(groupId, "_copynums_", 
                     bin_in_kbases, "k.pdf") )
-    , units = "mm", width = 297, height = 210 )
+            , units = "mm", width = 297, height = 210 
+        )
 
 #### Zoom to regions of interest ####
 ## PF samples initial ROI is 08: 410-435; other is 14: 1182-1219
@@ -193,7 +202,6 @@ panelplot + labs(title=paste(
     bin_in_kbases, "kb copy numbers zoomed in on region of interest"))
 
 ggsave(filename = file.path(
-    plotDir, paste0(strain, ".", "CNcolourpanels_chr", chrname, "_roi.pdf") )
-    , units = "mm", width = 180, height = 240
-    # , units = "mm", width = 70, height = 70
-)
+            paste0(strain, ".", "CNcolourpanels_chr", chrname, "_roi.pdf") )
+            , units = "mm", width = 180, height = 240
+        )

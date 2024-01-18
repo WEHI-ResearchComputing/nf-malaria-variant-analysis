@@ -25,6 +25,7 @@ include { RCopyNum } from './modules/stvariant.nf'
 include { InstallR } from './modules/stvariant.nf'
 include { FilterBcfVcf } from './modules/stvariant.nf'
 include { MajorityFilter } from './modules/stvariant.nf'
+include { RPlot } from './modules/stvariant.nf'
 include{ FastQC } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
@@ -87,16 +88,14 @@ workflow {
         if (row.ref =="3D7") {
             refpath=params.ref3D7_path
             ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-            prefix=row.ref
             bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
         }        
         else if (row.ref =="Dd2") {
             refpath=params.refDd2_path_path
             ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-            prefix=row.ref
             bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
         }
-        return tuple(row.groupId,ref,refpath,prefix,bsref, row.parentId, parentbamlist) 
+        return tuple(row.groupId,ref,refpath,row.ref,bsref, row.parentId, parentbamlist) 
     }
     .set{groupkey_ch}
     //Explain: .bamnodup.groupTuple() group tuples by the first value(groupid) 
@@ -139,7 +138,7 @@ workflow {
     smfilter_ch=SomaticFilter(combined_sv_ch,bamlist_ch.collect(),dummy_ch)
     //-------------------------------------------------------------------
     //----------------------CopyNum--------------------------------------
-    RCopyNum(gridss_combined_ch.join(merged_ch,by:0),
+    copynum_ch=RCopyNum(gridss_combined_ch.join(merged_ch,by:0),
         dummy_ch)
     //-------------------------------------------------------------------
     //----------------------filter BCF----------------------------------- 
@@ -152,13 +151,13 @@ workflow {
                     }.collect().toList()               
 
     FilterBcfVcf(
-        groupkey_ch.join(bcf_ch, by:0)
-        .join(bam_ch.bamnodup.groupTuple(),by:0)
-        .join(bam_ch.bai.groupTuple(),by:0)
-        .combine(parentbam_ch.collect().toList())
-        .combine(parent_index_ch),
-        dummy_ch
-    )
+                groupkey_ch.join(bcf_ch, by:0)
+                .join(bam_ch.bamnodup.groupTuple(),by:0)
+                .join(bam_ch.bai.groupTuple(),by:0)
+                .combine(parentbam_ch.collect().toList())
+                .combine(parent_index_ch),
+                dummy_ch
+            )
  
     //-------------------------------------------------------------------
     //----------------------Majority filter----------------------------------- 
@@ -168,6 +167,7 @@ workflow {
 
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
-    //----------------------Plot----------------------------------- 
+    //----------------------Plot-----------------------------------------
+    RPlot(groupkey_ch.join(copynum_ch,by:0))
     //-------------------------------------------------------------------
 }

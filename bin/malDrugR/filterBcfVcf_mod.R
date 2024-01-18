@@ -4,7 +4,13 @@
 # ---------- Read arguments ---------------------------------------------------
 #
 options(stringsAsFactors = FALSE)
-library(argparser)
+suppressPackageStartupMessages(library(argparser))
+#### Load remaining libraries ####
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(genomeIntervals)) ## Used for readGff3
+suppressPackageStartupMessages(library(VariantAnnotation))
+suppressPackageStartupMessages(library(GenomicAlignments))
+suppressPackageStartupMessages(library(AnnotationDbi))
 
 #### Read command-line arguments ####
 argp <- arg_parser(paste(
@@ -36,11 +42,7 @@ argp <- add_argument(argp, "--critsamplecount",
 )
 argv <- parse_args(argp)
 
-#### Load remaining libraries ####
-suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library(genomeIntervals)) ## Used for readGff3
-suppressPackageStartupMessages(library(VariantAnnotation))
-suppressPackageStartupMessages(library(GenomicAlignments))
+
 
 #### Read group details and set file paths ####
 
@@ -201,10 +203,10 @@ samplesOI <- setdiff( rownames( colData( samplevcf ) ), parentlist ) |>
 ## For replicate samples, a filtering criterion is that variants are
 ## present in critSamplesSom or more of the samples.
 ## The default value is half the number of (non-parent) samples.
-if (is.na(argv$critsamplecount)) {
+if (is.na(argv$critsamplecount) || length(argv$critsamplecount) == 0) {
     critSamplesSom <- (1 + length(samplesOI)) / 2
 } else critSamplesSom <- argv$critsamplecount
-
+print(critSamplesSom)
 majsom <- eventFilt[
   apply(
     geno(eventFilt)$GT, 1,
@@ -230,7 +232,6 @@ snpCDS <- subset(majsom[queryHits(eventCDS)], !INDEL)
 
 #### Read bam files to get allele counts of snpCDS positions ###
 countalleles <- function(bamfile, vcf) {
-  print(bamfile)
   bamparams <- ScanBamParam(
     which = rowRanges(vcf),
     what = c("qname", "pos", "seq", "qual")
@@ -293,13 +294,13 @@ SNPalleleCounts <- arrange(SNPalleleCounts, variant)
 
 #### Annotate SNPs ####
 #### Load genome and transcript db
-library(AnnotationDbi)
+
 txdb <- loadDb(file.path(
     refDir,   
     paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
 ))
-library(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version),
-        character.only = TRUE )
+suppressPackageStartupMessages(library(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version),
+        character.only = TRUE ))
 pfg <- get(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version))
 
 #### AA prediction for SNPs in CDS
@@ -354,7 +355,7 @@ SNPdetails <- left_join(
   by = join_by("SNP" == "variant")
 ) |>
   dplyr::select(!SNP)
-
+print(SNPdetails)
 #### Get gene details for indels and non-synonymous SNPs ####
 eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
   select = "last"
@@ -365,12 +366,12 @@ indelGeneAttr <- pf_featuresNovar[
     select = "last"
   )
 ]
-
 #### Get gene details for indels ####
 indels.Feat.df <- data.frame(
     rowRanges(indelGene)[,c("REF", "ALT", "QUAL")],
   ID = getGffAttribute(indelGeneAttr, "ID") |> unlist()
 ) 
+
 baseIDEvents <- str_replace(
     indels.Feat.df$ID, "^.*P", "P"
 ) |>
@@ -383,6 +384,8 @@ geneDetail <- map(baseIDEvents, function(ID) {
   )
 }) |>
   list_rbind()
+  
+print(geneDetail)
 indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |> 
     dplyr::select(-width, -strand) |>
     mutate(
