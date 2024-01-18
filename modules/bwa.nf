@@ -57,10 +57,8 @@ process Merge{
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist)
-    path(parentbams)
-    
-
+    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
+            path(parentbams)
     
     output:
     tuple val(groupId),path("${parentId}.bam")

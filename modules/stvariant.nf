@@ -130,7 +130,7 @@ process RCopyNum {
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
         --bin_in_kbases ${params.bin_in_kbases} \
-        --reference ${ref} --refDir ${refpath}\
+        --refDir ${refpath}\
         --bsref ${bsref}
     
     """
