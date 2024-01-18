@@ -206,7 +206,7 @@ samplesOI <- setdiff( rownames( colData( samplevcf ) ), parentlist ) |>
 if (is.na(argv$critsamplecount) || length(argv$critsamplecount) == 0) {
     critSamplesSom <- (1 + length(samplesOI)) / 2
 } else critSamplesSom <- argv$critsamplecount
-print(critSamplesSom)
+
 majsom <- eventFilt[
   apply(
     geno(eventFilt)$GT, 1,
@@ -289,7 +289,7 @@ SNPalleleCounts <- map(
 ) |>
   list_rbind()
 
-print(SNPalleleCounts)
+
 SNPalleleCounts <- arrange(SNPalleleCounts, variant)
 
 #### Annotate SNPs ####
@@ -355,7 +355,7 @@ SNPdetails <- left_join(
   by = join_by("SNP" == "variant")
 ) |>
   dplyr::select(!SNP)
-print(SNPdetails)
+
 #### Get gene details for indels and non-synonymous SNPs ####
 eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
   select = "last"
@@ -385,7 +385,6 @@ geneDetail <- map(baseIDEvents, function(ID) {
 }) |>
   list_rbind()
   
-print(geneDetail)
 indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |> 
     dplyr::select(-width, -strand) |>
     mutate(
