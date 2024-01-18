@@ -98,6 +98,7 @@ workflow {
         return tuple(row.groupId,ref,refpath,row.ref,bsref, row.parentId, parentbamlist) 
     }
     .set{groupkey_ch}
+
     //Explain: .bamnodup.groupTuple() group tuples by the first value(groupid) 
     //Explain: then combine with groupkey_ch based on groupid
     allbams_grouped_ch=groupkey_ch.join(bam_ch.bamnodup.groupTuple(), by: 0,remainder:true)
@@ -107,7 +108,7 @@ workflow {
     parentbam_ch=allbams_grouped_ch.map{tuple-> if (tuple[1]==null)
         return tuple[2]
     }
-    merged_ch=Merge(groupkey_ch,parentbam_ch.collect())
+    merged_ch=Merge(groupkey_ch.combine(parentbam_ch.toList().collect()))
     //-----------------------------------------------------------------
 
     //----------------QC tools------------------------------------------
