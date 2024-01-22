@@ -9,5 +9,5 @@
 ./resumepipeline.sh
 ```
 
-This will use data files from `/vast/projects/malaria/data_sample/sh_16000` which are samples from the original data files.
+This will use data files from `/vast/projects/malaria/data_sample/sh_400000` which are samples from the original data files.
 
