@@ -57,6 +57,8 @@ sampleL <- sub("_nodup\\.bam$", "", strainbamL)
 library(argv$bsref,
   character.only = TRUE
 )
+pfg <- get(argv$bsref)
+
 
 #### Function to create an annotated dataframe of bins, ####
 ##   listing their start, end, GC percentage, etc.
