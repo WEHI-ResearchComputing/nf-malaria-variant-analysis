@@ -63,7 +63,7 @@ process InstallR{
     """
     echo \$CONDA_PREFIX
     echo "Installing R packages."
-    Rscript ${projectDir}/bin/installR.R    
+    Rscript --vanilla ${projectDir}/bin/installR.R    
     """
 }
 
@@ -91,7 +91,7 @@ process SomaticFilter{
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
    
     echo "Start Somatic filter."
-    Rscript ${projectDir}/bin/gridss_assets/gridss_somatic_filter.R \
+    Rscript --vanilla ${projectDir}/bin/gridss_assets/gridss_somatic_filter.R \
         --input ${groupId}.vcf \
         --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf.bgz \
         --scriptdir ${projectDir}/bin/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
@@ -125,7 +125,7 @@ process RCopyNum {
 
     script:
     """
-    Rscript ${projectDir}/bin/malDrugR/copynumQDNAseqParents_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumQDNAseqParents_mod.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
@@ -158,7 +158,7 @@ process FilterBcfVcf {
     script:
     """
     
-    Rscript ${projectDir}/bin/malDrugR/filterBcfVcf_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/filterBcfVcf_mod.R \
         --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
@@ -187,7 +187,7 @@ process MajorityFilter {
 
     script:
     """
-    Rscript ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
         --scriptdir ${projectDir}/bin/gridss_assets/ \
         --samplegroup ${groupId} \
         --parentlist "${parentbamlist}" \
@@ -211,7 +211,7 @@ process RPlot {
 
     script:
     """
-    Rscript ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --strain ${prefix} \
