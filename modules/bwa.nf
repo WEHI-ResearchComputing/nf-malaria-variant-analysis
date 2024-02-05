@@ -5,7 +5,7 @@ process Bwa {
     tag "${sampleId}"
     
     input:
-    tuple val(groupId),val(sampleId), val(fastqbase),val(ref)
+    tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
     
   
     output:
@@ -13,7 +13,6 @@ process Bwa {
 
     script:
     """
-    echo "BWA Alignment"
     bwa mem -t ${task.cpus} -o ${sampleId}.sam \
             -R "@RG\\tID:${sampleId}\\tSM:${sampleId}\\tPL:ILLUMINA" \
             ${ref} \
@@ -33,13 +32,10 @@ process Index {
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
     tuple val(groupId), path("*_nodup*bai"), emit: bai
-    path("*_nodup.bam"), emit: bam_4qc
-    path("*_s.bam"), emit: s_bams
     path("*.metrics")
 
     script:
     """
-    echo "SAM Indexing"
     samtools view -b ${samfile}  |  \
     samtools sort -o ${sampleId}_s.bam -O bam -@ 4 -
     samtools index ${sampleId}_s.bam
@@ -53,15 +49,15 @@ process Index {
 
 process Merge{
     label 'Samtools'
-    tag "${groupId}-${parentId}"
+    tag "${parentId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
-            path(parentbams)
+    tuple  val(parentId), path(parentbams), val(parentbamlist)
+            
     
     output:
-    tuple val(groupId),path("${parentId}.bam")
+    tuple val(parentId),path("${parentId}.bam")
 
     script:
     
@@ -76,30 +72,54 @@ process WriteBamLists {
 
     publishDir "${params.outdir}", mode: 'copy'
     input:
-    path(sample_key)
-    path(group_key)
+    path(inputfile)
 
     output:
-    path("*_bams.txt")
-    
+    path("*_bams.txt"), emit:bams
+
     script:
     """
+    parents=`awk -F '\\t' 'NR > 1 { print \$5 }' ${inputfile} |  uniq`
+    echo \$parents
+    items=()
     {
         read
-        while IFS=\$'\\t' read -r groupId	ref	parentId	parentbamlist; do
-            IFS=',' read -r -a array <<< "\$parentbamlist"
-            # Iterate over the array
-            for item in "\${array[@]}"; do
-                echo "\$item">> \$groupId"_bams.txt"
-            done
-        done 
-    }< ${group_key}
-    {
-        read
-        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref; do
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
             echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
+            items+=("\${parentId//[\$'\\t\\r\\n ']}-\$groupId")
         done 
-    }< ${sample_key}
+        # Remove duplicates by converting the array to an associative array
+        declare -A assocArray
+        for item in "\${items[@]}"; do
+            assocArray["\$item"]=1
+        done
+
+        # Convert back to a regular array to get the list of unique items
+        uniqueItems=("\${!assocArray[@]}")
+    }< ${inputfile}
+    
+    {
+        read
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
+            for item in "\${uniqueItems[@]}"; do
+                # Perform actions with each unique item
+                oldIFS="\$IFS"
+                # Set IFS to hyphen for splitting
+                IFS='-'
+                # Read the variable into an array based on IFS
+                read -ra parts <<< "\$item"
+                # Restore the original IFS value
+                IFS="\$oldIFS"
+                pid=\${parts[0]}
+                gid=\${parts[1]}
+                echo \$gid - \$pid - \$groupId - \$sampleId
+                if [[ "\$pid" == "\$groupId" ]]; then
+                    echo \$sampleId"_nodup.bam" >> \$gid"_bams.txt"
+                fi
+                # You can insert any commands here to process each item
+            done
+        done
+    }< ${inputfile}
     
      
     """

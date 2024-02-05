@@ -1,12 +1,11 @@
 process FastQC {
     label 'Fastqc' // assumes resources are defined in a label
-
+    tag "${groupId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
 
     input:
     path(bams)
     
-
     output:
     path("*.html"), emit: html
     path("*.zip") , emit: zip
