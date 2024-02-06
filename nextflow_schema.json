@@ -13,8 +13,7 @@
             "required": [
                 "outdir",
                 "input_seq_path",
-                "input_group_key_file",
-                "input_sample_key_file"
+                "input_file"
             ],
             "properties": {
                 "outdir": {
@@ -28,15 +27,9 @@
                     "default": "/vast/scratch/users/iskander.j/prep_data/sh_400000",
                     "format": "directory-path"
                 },
-                "input_group_key_file": {
+                "input_file": {
                     "type": "string",
-                    "default": "/vast/projects/malaria/MadelineDec2023/group_key.txt",
-                    "format": "file-path"
-                },
-                "input_sample_key_file": {
-                    "type": "string",
-                    "default": "/vast/projects/malaria/MadelineDec2023/sample_key.txt",
-                    "format": "file-path"
+                    "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/malaria/cowman_lab/drug_resistance/MK7602humanchallenge/samplegroups.txt"
                 }
             }
         },
