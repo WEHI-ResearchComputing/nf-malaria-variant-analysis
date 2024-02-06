@@ -4,12 +4,11 @@ process Bcf{
     label 'Bcftools'
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/snvs_indels", mode: 'copy'
-
+    cache true
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
-            path(bams),
+    tuple  val(parentId),val(groupId),val(ref),
             path(bamlist),
-            path(parentbams)
+            path(bams),path(parentbams)
     
     output:
     tuple  val(groupId), path("${groupId}.vcf")
@@ -28,14 +27,14 @@ process Bcf{
 process Gridss{
     label 'Gridss' 
     label 'RGridss'   
-    tag "${groupId}"   
+    tag "${groupId}" 
+    cache true  
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
-            path(bams), 
-            val(bamfilenames),
-            path(parentbams)
+    tuple  val(parentId),val(groupId),val(ref),
+            val(bamfilenames), 
+            path(bams),path(parentbams)
 
     output:
     tuple val(groupId), path("${groupId}.bam"), emit: bam
@@ -69,14 +68,15 @@ process InstallR{
 
 process SomaticFilter{
     label 'Rfilter' 
-
+    cache true
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), path(vcf)
-    path(bamlist)
-    val(dummy)
+    tuple val(groupId),val(bsref),val(parentbamlist), 
+            path(bamlist), 
+            path(vcf),
+            val(dummy)
 
     output:
     tuple val(groupId),path("${groupId}_high_and_imprecise.vcf"), emit:vcf
@@ -107,18 +107,19 @@ process SomaticFilter{
     """
 }
 process RCopyNum {
-    label 'Rfilter' 
+    label 'Rfilter'         
+    cache true
 
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/copynumfiles", mode: 'copy'
     
     input:
    
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
+    tuple  val(groupId),val(parentId),val(refpath),val(bsref),
+            path(mergedparent), 
+            val(bamfilenames), 
             path(bams), 
-            val(bamfilenames),
-            path(parentbams)
-    val(dummy)
+            val(dummy)
 
     output:
     tuple val(groupId), path("*.rds")
@@ -143,13 +144,9 @@ process FilterBcfVcf {
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
-            path(vcf),
-            path(bams),
-            path(bai),
-            path (parentbams),
-            path (parentindices)
-    val(dummy)
+    tuple  val(groupId),val(refpath),val(prefix),
+            path(parentbai),path(parentbam), val(parentbamlist), path(vcf), 
+            path(bams), path(bai), val(dummy)
 
     output:
     path "*.tsv", emit: tsv 
@@ -157,7 +154,6 @@ process FilterBcfVcf {
 
     script:
     """
-    
     Rscript --vanilla ${projectDir}/bin/malDrugR/filterBcfVcf_mod.R \
         --samplegroup ${groupId} \
         --refpath ${refpath} \
@@ -176,15 +172,11 @@ process MajorityFilter {
 
 
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
-        path(vcf)
-    val(dummy)
+    tuple  val(groupId),val(parentbamlist), path(vcf), val(dummy)
     
     output:
     tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
     tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
- 
-
     script:
     """
     Rscript --vanilla ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
@@ -203,8 +195,8 @@ process RPlot {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist), 
-        path(rds)
+    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
+            path(rds)
 
     output:
     tuple val(groupId), path("*.pdf")

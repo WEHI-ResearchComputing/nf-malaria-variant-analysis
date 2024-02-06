@@ -79,48 +79,28 @@ process WriteBamLists {
 
     script:
     """
-    parents=`awk -F '\\t' 'NR > 1 { print \$5 }' ${inputfile} |  uniq`
-    echo \$parents
-    items=()
+    sed -i -e '\$a\\' ${inputfile}
+    declare -A assocArray
+
     {
         read
         while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
             echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
-            items+=("\${parentId//[\$'\\t\\r\\n ']}-\$groupId")
+            assocArray[\$groupId]=\${parentId//[\$'\\t\\r\\n ']}
         done 
-        # Remove duplicates by converting the array to an associative array
-        declare -A assocArray
-        for item in "\${items[@]}"; do
-            assocArray["\$item"]=1
-        done
+    }< 	${inputfile}
 
-        # Convert back to a regular array to get the list of unique items
-        uniqueItems=("\${!assocArray[@]}")
-    }< ${inputfile}
-    
     {
         read
         while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
-            for item in "\${uniqueItems[@]}"; do
-                # Perform actions with each unique item
-                oldIFS="\$IFS"
-                # Set IFS to hyphen for splitting
-                IFS='-'
-                # Read the variable into an array based on IFS
-                read -ra parts <<< "\$item"
-                # Restore the original IFS value
-                IFS="\$oldIFS"
-                pid=\${parts[0]}
-                gid=\${parts[1]}
-                echo \$gid - \$pid - \$groupId - \$sampleId
-                if [[ "\$pid" == "\$groupId" ]]; then
+            for gid in \${!assocArray[@]}
+            do
+            if [[ "\${assocArray[\${gid}]}" == "\$groupId" ]]; then
                     echo \$sampleId"_nodup.bam" >> \$gid"_bams.txt"
                 fi
-                # You can insert any commands here to process each item
+                
             done
         done
-    }< ${inputfile}
-    
-     
+    }< ${inputfile} 
     """
 }
