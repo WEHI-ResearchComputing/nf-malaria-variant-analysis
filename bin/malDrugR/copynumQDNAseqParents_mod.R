@@ -2,8 +2,6 @@
 ## reads bam files (first time) or binned read counts if available,
 ## then uses functions from QDNAseq to calculate read depths and copynumbers.
 ## A 'mappability file' is used for correcting the counts
-## Copied from Madeline2022
-## Jocelyn Sietsma Penington  November 2023
 ##
 #Rscript ${projectDir}/bin/malDrugR/copynumQDNAseqParents.R \
     #    --samplegroup ${groupId} \
@@ -164,13 +162,12 @@ countsCorrected <- estimateCorrection(countsFiltered)
 copyNums <- correctBins(countsCorrected)
 ## Scale copy numbers by median (default)
 copyNumsNormed <- normalizeBins(copyNums)
-saveRDS(copyNumsNormed, file.path(paste0(strain, "_cn_", argv$bin_in_kbases, "k.rds")))
-
+## Scale strain copy numbers by dividing by parent copy numbers
 StrainScaledByParents <- compareToReference(
   copyNumsNormed,
   c(FALSE, rep(1, times = length(strainbamL)))
 )
-# plot(StrainScaledByParents)
+## Function to convert QDNASeq object to data frame
 convertQDNAtoDF <- function(qobject) {
   if ("counts" %in% assayDataElementNames(qobject)) {
     scoreDF <- as.data.frame(assayDataElement(qobject, "counts"))
@@ -188,6 +185,14 @@ convertQDNAtoDF <- function(qobject) {
 
   return(scoreDF)
 }
+CN_df <- convertQDNAtoDF(copyNumsNormed)
+saveRDS(
+  scaled_df,
+  file.path(paste0(strain, ".CN_df_",
+      argv$bin_in_kbases, "k", ".rds"
+    )
+  )
+)
 scaled_df <- convertQDNAtoDF(StrainScaledByParents)
 saveRDS(
   scaled_df,

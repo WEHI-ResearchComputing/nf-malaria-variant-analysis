@@ -2,7 +2,6 @@
 ## Basically same as version in Madeline 2022
 
 suppressPackageStartupMessages(library(tidyverse))
-suppressPackageStartupMessages(library("QDNAseq"))
 suppressPackageStartupMessages(library("Biobase"))
 theme_set(theme_bw())
 pdf.options(useDingbats=FALSE)
@@ -45,41 +44,17 @@ strain <- argv$strain
 
 #### Read stored results ####
 copyNumsNormed <- readRDS( file.path(
-                    paste0( groupId, '_cn_', bin_in_kbases, 'k.rds')
+                    paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
                 ) )
-scaled_df <- readRDS(file.path( 
-                    paste0(groupId, ".CN_compare_df_", 
-                     bin_in_kbases, "k", ".rds")
-                )) 
-## Remove Apical and Mitochondrial genome bins from data if present, 
-## and re-read data later for mito inspection. Genomes too small to show on 
-## same plot as nuclear
-if(strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
-} else {nonNuc <- c('Pf3D7_API_v3', 'Pf3D7_MIT_v3') }
+scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
 
-scaled_df <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
-
-## Don't Read sample names from data frame any more. Use sample_key. 
-## No strain name, just analysis name, or optional input
-sampleL <- colnames( scaled_df )[which( 
-    str_detect( colnames( scaled_df ), strain ) ) ] %>%
+## Copynum files are made with single parent,
+## with sample name matching parentId in groupkey
+sampleL <- colnames( scaled_nuc )[which( 
+    str_detect( colnames( scaled_nuc ), parentId ) ) ] %>%
     str_remove( paste( ' vs.', parentId ) )
-## - str_detect(..., strain) doesn't work when not all have strain as prefix
 
 #### Define functions ####
-convertQDNAtoDF <- function(qobject) {
-    if ("counts" %in% assayDataElementNames(qobject) ) {
-        scoreDF <- as.data.frame( assayDataElement(qobject, "counts"))
-    } else if ("copynumber" %in% assayDataElementNames(qobject) ) {
-        scoreDF <- as.data.frame( assayDataElement(qobject, "copynumber"))
-    }
-    scoreDF$chrom <- sapply(strsplit(rownames(scoreDF), ':'), function(x) (unlist(x)[1]) )
-    scoreDF$range <- sapply(strsplit(rownames(scoreDF), ':'), function(x) (unlist(x)[2]) )
-    scoreDF$start <- sapply(strsplit(scoreDF$range, '-'), function(x) (as.numeric(unlist(x)[1]) ) )
-    scoreDF$end <- sapply(strsplit(scoreDF$range, '-'), function(x) (as.numeric(unlist(x)[2]) ) )
-    
-    return(scoreDF)
-}
 
 plotLogRow <- function(binCounts, orgCol, bin_size, maxCN, minCN, newtitle) {
     ## Plot chromosomes in single row, log-y scale
@@ -127,7 +102,7 @@ plotWholeCN <- function(bin_df, bin_size, maxCN){
     chromlist <- unique(bin_df$chrom)
     if (missing(maxCN)) maxCN <- ceiling( max(na.omit(bin_df$copynum)) )
     smaller_df <- 
-        rbind( filter(bin_df,  start == 1 ),
+        rbind( filter(bin_df,  start == 1),
                slice_sample( bin_df, n=5000, 
                              weight_by = deemph1(bin_df$copynum) + 0.1)
         )
@@ -169,15 +144,14 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
         labs( x= paste( "Position in chromosome", chro, "(kb)" ), y="Scaled Copy number")
 }
 
-
 ## Make a plot for parent plus un-scaled samples in a single column
 ## Option to fix values for ymax and ymin to give better comparisons
-allCN <- convertQDNAtoDF(copyNumsNormed) %>%
+nucCN <- copyNumsNormed %>%
     dplyr::filter( !(chrom %in% nonNuc) )
 
 plotset <- arrangeGrob(
     grobs = lapply(c( parentId, sampleL[order(sampleL)] ), function(samplen)
-    { plotLogRow(allCN, paste(samplen ) , bin_in_kbases
+    { plotLogRow(nucCN, paste(samplen) , argv$bin_in_kbases
                  , maxCN = 2^5, minCN = 2^-2
     ) + theme(title = element_text(size = 8),
               plot.margin = margin(0,4,0,4),
