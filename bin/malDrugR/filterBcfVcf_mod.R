@@ -361,41 +361,43 @@ eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
   select = "last"
 )
 indelGene <- subset(majsom[!is.na(eventGene)], INDEL)
-indelGeneAttr <- pf_featuresNovar[
-  findOverlaps(rowRanges(indelGene), GRanges(pf_featuresNovar),
-    select = "last"
-  )
-]
-#### Get gene details for indels ####
-indels.Feat.df <- data.frame(
+if (nrow(indelGene) > 0){
+  indelGeneAttr <- pf_featuresNovar[
+    findOverlaps(rowRanges(indelGene), GRanges(pf_featuresNovar),
+                 select = "last"
+    )
+  ]
+  #### Get gene details for indels ####
+  indels.Feat.df <- data.frame(
     rowRanges(indelGene)[,c("REF", "ALT", "QUAL")],
-  ID = getGffAttribute(indelGeneAttr, "ID") |> unlist()
-) 
-
-baseIDEvents <- str_replace(
-    indels.Feat.df$ID, "^.*P", "P"
-) |>
-  str_remove("\\..*$")
-geneDetail <- map(baseIDEvents, function(ID) {
-  genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
-  data.frame(
-    GeneName = getGffAttribute(genegff, "Name"),
-    Description = getGffAttribute(genegff, "description")
-  )
-}) |>
-  list_rbind()
+    ID = getGffAttribute(indelGeneAttr, "ID") |> unlist()
+  ) 
   
-indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |> 
+  baseIDEvents <- str_replace(
+    indels.Feat.df$ID, "^.*P", "P"
+  ) |>
+    str_remove("\\..*$")
+  geneDetail <- map(baseIDEvents, function(ID) {
+    genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
+    data.frame(
+      GeneName = getGffAttribute(genegff, "Name"),
+      Description = getGffAttribute(genegff, "description")
+    )
+  }) |>
+    list_rbind()
+  indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |> 
     dplyr::select(-width, -strand) |>
     mutate(
-        Gene = case_when(
-            is.na(GeneName) ~ Description |> 
-                str_replace_all(pattern = "\\+", replacement = " "),
-            TRUE ~ GeneName),
-        ALT = CharacterList(ALT) |> unstrsplit(sep=','),
-        GeneName = NULL, Description = NULL
+      Gene = case_when(
+        is.na(GeneName) ~ Description |> 
+          str_replace_all(pattern = "\\+", replacement = " "),
+        TRUE ~ GeneName),
+      ALT = CharacterList(ALT) |> unstrsplit(sep=','),
+      GeneName = NULL, Description = NULL
     )
-
+} else {
+  indels.Feat.df <- data.frame(Gene=character(), ALT=character())
+}
 
 ## Report indels in gene regions
 write_tsv(
