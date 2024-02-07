@@ -54,30 +54,7 @@ workflow {
     .splitCsv(header:true,sep:'\t')
     .set{input_ch} // Emits a row [groupId	sampleId	fastqbase	ref	parentId]
     
-    // .map { row -> 
-    //     //groupId	sampleId	fastqbase	ref	parentId	parentbamlist
-    //     def parentbamlist = row.parentbamlist.replace(',', ' ')
-    //     def mergedparent=row.parentId+".bam"
-    //     def ref=""
-    //     def refpath=""
-    //     def prefix=""
-    //     def bsref=""
-    //     if (row.ref =="3D7") {
-    //         refpath=params.ref3D7_path
-    //         ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-    //         bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
-    //     }        
-    //     else if (row.ref =="Dd2") {
-    //         refpath=params.refDd2_path_path
-    //         ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-    //         bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
-    //     }
-    //     return tuple(row.groupId,row.sampleId, row.fastqbase, row.parentId, ref, refpath, row.ref,bsref, parentbamlist) 
-    // }.set{input_ch}
-
-    // input_ch.view()
     //-----------------------------------------------------------------
-
     //----------------Alignment-----------------------------------------
     bamlist_ch=WriteBamLists(Channel.fromPath(params.input_file,checkIfExists:true))
     bamlist_ch=bamlist_ch.flatten()
@@ -90,9 +67,10 @@ workflow {
                         ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
                     }        
                     else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
+                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
                     }
-                    
+                    println(ref)
+                    println(row.ref)
                     return tuple(row.sampleId,row.groupId,row.fastqbase,ref)
                 }.set{bwa_input_ch}// Emit tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
 
@@ -132,7 +110,7 @@ workflow {
                         ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
                     }        
                     else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
+                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
                     }
                     return tuple(row.groupId,row.parentId,ref)
                 }.unique()
@@ -150,7 +128,7 @@ workflow {
                         ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
                     }        
                     else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
+                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
                     }
                     
                     return tuple(row.groupId,row.parentId,ref)
@@ -193,7 +171,7 @@ workflow {
                         bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
                     }        
                     else if (row.ref =="Dd2") {
-                        refpath=params.refDd2_path_path
+                        refpath=params.refDd2_path
                         bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
                     }
                     return tuple(row.parentId, row.groupId,refpath,bsref )
@@ -258,7 +236,7 @@ workflow {
                         bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
                     }        
                     else if (row.ref =="Dd2") {
-                        refpath=params.refDd2_path_path
+                        refpath=params.refDd2_path
                         bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
                     }
                     return tuple(row.groupId,row.parentId,refpath,bsref)
