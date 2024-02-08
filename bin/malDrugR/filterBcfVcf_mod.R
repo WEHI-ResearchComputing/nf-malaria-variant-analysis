@@ -58,10 +58,15 @@ pfCurrRefs <- data.frame(
 ref <- filter(pfCurrRefs, strain == argv$refstrain)
 
 # ---------- Read genomic features --------------------------------------------
-pf_features <- readGff3(file.path(
-  refDir,
-  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
-), quiet = TRUE)
+file.gff <- file.path(refDir,
+                      paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
+)
+pf_features <- tryCatch(
+  readGff3(file.gff, quiet = TRUE),
+  error = function(e){
+    stop(paste(e, "Filepath:",file.gff))
+}
+)
 ## Filter to remove PfEMP1 var, rifin, and STEVOR genes, and pseudogenes
 ## - genes known to be highly variable and not relevant
 idxGene2remove <- grepl(
@@ -98,22 +103,31 @@ grPfalc <- GRanges(
 )
 
 if (ref$strain == "3D7") { # haven't yet got this data for Dd2
-  coreGenome <- read_delim(
-    file.path(refDir, "GenomeRegionsMilesEtAL_plus_10centromere.txt"),
-    delim = " ",
-    col_types = "ciici"
-  ) %>% filter(Type == "Core")
-  grCore <- GRanges(
-    seqnames = coreGenome$Chromosome,
-    ranges = IRanges(
-      start = coreGenome$Start,
-      end = coreGenome$Stop,
-      width = coreGenome$Size
+  corepath <- file.path(refDir, "GenomeRegionsMilesEtAL_plus_10centromere.txt")
+  getRegions <- function(filep){
+    coreGenome <- read_delim(
+      filep,
+      delim = " ",
+      col_types = "ciici"
+    ) %>% filter(Type == "Core")
+    grCore <- GRanges(
+      seqnames = coreGenome$Chromosome,
+      ranges = IRanges(
+        start = coreGenome$Start,
+        end = coreGenome$Stop,
+        width = coreGenome$Size
+      ) # specify all 3 as sanity check against bed-format confusion
     )
-    # specify all 3 as sanity check against bed-format confusion
-  )
-  ## Extend 'core genome' to include all of mito as it is of interest
-  grCoreMT <- c(grCore, grPfalc[which(seqnames(grPfalc) == "Pf3D7_MIT_v3")])
+    ## Extend 'core genome' to include all of mito as it is of interest
+    return(c(grCore, grPfalc[which(seqnames(grPfalc) == "Pf3D7_MIT_v3")]))
+  }
+  grCoreMT <- tryCatch(
+    getRegions(corepath),
+    error = function(err) {
+    warning(paste(err, corepath, 
+                  "\nRevert to full genome instead of core regions."))
+    return(grPfalc)
+  })
 }
 
 # ---------- Define filter functions -------------------------------------------
@@ -188,8 +202,12 @@ somatic <- function(gt, pgt) {
 
 # ---------- Read vcf files, and filter --------------------------------
 #
-samplevcf <- readVcf(
-  file.path(paste0(argv$samplegroup, ".vcf"))
+samplevcf <- tryCatch(
+  readVcf(paste0(argv$samplegroup, ".vcf")
+  ),
+  error = function(e){
+    stop(paste(e, "Filepath:",paste0(argv$samplegroup, ".vcf")))
+  }
 )
 ## Filter
 eventFilt <- filt_vcf(
@@ -281,8 +299,8 @@ countalleles <- function(bamfile, vcf) {
 
 SNPalleleCounts <- map(
   c(
-    file.path( paste0(samplesOI, "_nodup.bam")),
-    file.path( paste0(parentlist, "_nodup.bam"))
+    paste0(samplesOI, "_nodup.bam"),
+    paste0(parentlist, "_nodup.bam")
   ),
   countalleles,
   vcf = snpCDS
@@ -294,13 +312,18 @@ SNPalleleCounts <- arrange(SNPalleleCounts, variant)
 
 #### Annotate SNPs ####
 #### Load genome and transcript db
-
-txdb <- loadDb(file.path(
-    refDir,   
-    paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
-))
-suppressPackageStartupMessages(library(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version),
-        character.only = TRUE ))
+transcriptdb <- file.path(
+  refDir,   
+  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
+)
+txdb <- tryCatch(
+  txdb <- loadDb(transcriptdb),
+  error = function(e){
+    stop(paste(e, "Filepath:",transcriptdb))
+  }
+)
+library(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version),
+        character.only = TRUE )
 pfg <- get(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version))
 
 #### AA prediction for SNPs in CDS

@@ -12,9 +12,9 @@
 library(argparser)
 argp <- arg_parser(paste(
   "Read a set of bam files, ", "count reads in bins defined on a reference genome",
-  ", and save copy number scores. Intermediate files are read if available.",
-  "\nA data frame of copynumbers of samples scaled relative to a 'parent'",
-  " reference sample is also saved."
+  ", and calculate copy number scores. Intermediate files are read if available.",
+  "\nData frames of normalised CN and CN of samples scaled relative to a 'parent'",
+  " sample are saved as RDS."
 ))
 argp <- add_argument(argp, "--samplegroup",
                      help = "Group name of related samples. Required"
@@ -73,13 +73,18 @@ makePfBins <- function(bin_in_kbases) {
       refDir, "mappability",
       "kmer30_err2.bw"
     )
+    if( !file.exists(mapityfile) ){
+      stop(paste("Mappability file", mapityfile, "not found"))}
+    bigWigpath <- file.path(
+      "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
+      "bigWigAverageOverBed"
+    )
+    if( !file.exists(bigWigpath) ){
+      stop(paste(bigWigpath, "not found"))}
     pfBins$mappability <- calculateMappability(
       pfBins,
       bigWigFile = mapityfile,
-      bigWigAverageOverBed = file.path(
-        "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
-        "bigWigAverageOverBed"
-      ),
+      bigWigAverageOverBed = bigWigpath,
       chrPrefix = ""
     )
     pfBins <- AnnotatedDataFrame(
