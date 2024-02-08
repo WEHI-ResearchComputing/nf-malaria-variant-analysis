@@ -170,7 +170,7 @@ copyNumsNormed <- normalizeBins(copyNums)
 ## Scale strain copy numbers by dividing by parent copy numbers
 StrainScaledByParents <- compareToReference(
   copyNumsNormed,
-  c(FALSE, rep(1, times = length(strainbamL)))
+  c(FALSE, rep(1, times = length(groupbamL)))
 )
 ## Function to convert QDNASeq object to data frame
 convertQDNAtoDF <- function(qobject) {
@@ -192,7 +192,7 @@ convertQDNAtoDF <- function(qobject) {
 }
 CN_df <- convertQDNAtoDF(copyNumsNormed)
 saveRDS(
-  scaled_df,
+  CN_df,
   file.path(paste0(groupId, ".CN_df_",
       argv$bin_in_kbases, "k", ".rds"
     )
