@@ -195,7 +195,7 @@ process RPlot {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
+    tuple  val(groupId),val(parentId),val(refpath),
             path(rds)
 
     output:
@@ -206,7 +206,6 @@ process RPlot {
     Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --strain ${prefix} \
         --refDir ${refpath} \
         --bin_in_kbases ${params.bin_in_kbases} 
     """
