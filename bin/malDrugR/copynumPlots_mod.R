@@ -46,6 +46,10 @@ strain <- argv$strain
 copyNumsNormed <- readRDS( file.path(
                     paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
                 ) )
+scaled_df <- readRDS(file.path(paste0(strain, ".CN_compare_df_",
+                 argv$bin_in_kbases, "k", ".rds")
+                 )
+)
 scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
 
 ## Copynum files are made with single parent,
