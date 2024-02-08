@@ -83,19 +83,25 @@ idx2remove <- str_detect(
 )
 pf_featuresNovar <- pf_features[!idx2remove]
 CDSnoVar <- pf_featuresNovar[annotation(pf_featuresNovar)$type == "CDS", ]
+file.chrinfo <- file.path(
+  refDir, paste0(
+    "PlasmoDB-", ref$version, "_Pfalciparum", ref$strain,
+    "_Genome.fasta.fai"
+  )
+)
 chrinfo <-
-  read.table(
-    file = file.path(
-      refDir, paste0(
-        "PlasmoDB-", ref$version, "_Pfalciparum", ref$strain,
-        "_Genome.fasta.fai"
+  tryCatch(
+    read.table(
+      file = file.chrinfo,
+      sep = "\t",
+      col.names = c(
+        "seqnames", "seqlengths",
+        "OFFSET", "LINEBASES", "LINEWIDTH"
       )
     ),
-    sep = "\t",
-    col.names = c(
-      "seqnames", "seqlengths",
-      "OFFSET", "LINEBASES", "LINEWIDTH"
-    )
+    error = function(e){
+      stop(paste(e, "Filepath:",file.chrinfo))
+    }
   )
 grPfalc <- GRanges(
   seqnames = chrinfo$seqnames,
@@ -118,7 +124,7 @@ if (ref$strain == "3D7") { # haven't yet got this data for Dd2
         width = coreGenome$Size
       ) # specify all 3 as sanity check against bed-format confusion
     )
-    ## Extend 'core genome' to include all of mito as it is of interest
+    ## Extend 'core genome' to include mitochondrial
     return(c(grCore, grPfalc[which(seqnames(grPfalc) == "Pf3D7_MIT_v3")]))
   }
   grCoreMT <- tryCatch(
