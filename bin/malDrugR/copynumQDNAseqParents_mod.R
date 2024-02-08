@@ -45,12 +45,12 @@ suppressPackageStartupMessages(library("QDNAseq"))
 suppressPackageStartupMessages(library("Biobase"))
 suppressPackageStartupMessages(library(devtools))
 
-strain <- argv$samplegroup
+groupId <- argv$samplegroup
 parentID <- argv$parentId
 refDir <- argv$refDir
-strainbamL <- strsplit(argv$bams, " ")[[1]]
-strainbamL <- strainbamL[!grepl(parentID, strainbamL)]
-sampleL <- sub("_nodup\\.bam$", "", strainbamL)
+groupbamL <- strsplit(argv$bams, " ")[[1]]
+groupbamL <- groupbamL[!grepl(parentID, groupbamL)]
+sampleL <- sub("_nodup\\.bam$", "", groupbamL)
 
 library(argv$bsref,
   character.only = TRUE
@@ -98,7 +98,7 @@ makePfBins <- function(bin_in_kbases) {
 }
 ###### Binned counts for samples ######
 
-## Parent strain handled separately because many groups use the same parent
+## Parent sample handled separately because many groups use the same parent
 parentcountsn <- file.path(
   paste0("Counts", argv$bin_in_kbases, "k_", parentID, ".rds")
 )
@@ -120,9 +120,9 @@ if (file.exists(parentcountsn)) {
 }
 
 
-## Resistant strains
+## Resistant samples
 countfilen <- paste0(
-  "Counts", argv$bin_in_kbases, "k_", strain,
+  "Counts", argv$bin_in_kbases, "k_", groupId,
   ".rds"
 )
 if (file.exists(file.path(countfilen))) {
@@ -133,7 +133,7 @@ if (file.exists(file.path(countfilen))) {
   }
   countsinbins <- binReadCounts(
     pfBins,
-    bamfiles = file.path(strainbamL),
+    bamfiles = file.path(groupbamL),
     bamnames = sampleL
   )
 
@@ -188,7 +188,7 @@ convertQDNAtoDF <- function(qobject) {
 CN_df <- convertQDNAtoDF(copyNumsNormed)
 saveRDS(
   scaled_df,
-  file.path(paste0(strain, ".CN_df_",
+  file.path(paste0(groupId, ".CN_df_",
       argv$bin_in_kbases, "k", ".rds"
     )
   )
@@ -196,7 +196,7 @@ saveRDS(
 scaled_df <- convertQDNAtoDF(StrainScaledByParents)
 saveRDS(
   scaled_df,
-  file.path(paste0(strain, ".CN_compare_df_",
+  file.path(paste0(groupId, ".CN_compare_df_",
       argv$bin_in_kbases, "k", ".rds"
     )
   )

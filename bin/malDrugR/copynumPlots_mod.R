@@ -5,8 +5,6 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library("Biobase"))
 theme_set(theme_bw())
 pdf.options(useDingbats=FALSE)
-## This should remove need for 'useDingbats=FALSE' in ggsave commands.
-# Alternative solution is to edit fonts used by Illustrator
 
 suppressPackageStartupMessages(library(gridExtra))  # to arrange the 14 chromosomes in 2 rows
 suppressPackageStartupMessages(library(scales) )   # Need the scales package for log2 transform
@@ -21,9 +19,6 @@ argp <- add_argument(argp, "--samplegroup",
 )
 argp <- add_argument(argp, "--parentId",
                      help = "parent name of related samples. Required"
-)
-argp <- add_argument(argp, "--strain",
-                     help = "strain name of related samples (3D7 or Dd2). Required"
 )
 argp <- add_argument(argp, "--refDir",
                      help = "reference directory "
@@ -40,15 +35,27 @@ bin_in_kbases <- argv$bin_in_kbases
 ## Parent samples and samples of interest
 parentId <- argv$parentId 
 groupId <- argv$samplegroup
-strain <- argv$strain
 
 #### Read stored results ####
-copyNumsNormed <- readRDS( file.path(
-                    paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
-                ) )
-scaled_df <- readRDS(file.path(paste0(strain, ".CN_compare_df_",
-                 argv$bin_in_kbases, "k", ".rds")
-                 )
+copyNumsNormed <- tryCatch(
+  readRDS( paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
+                ),
+  error <- function(e){
+    stop(paste(e, "when reading copy number file",
+               paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds') )
+         )
+  }
+)
+scaled_df <- tryCatch(
+  readRDS( paste0(groupId, ".CN_compare_df_",
+                  argv$bin_in_kbases, "k", ".rds")
+  ),
+  error <- function(e){
+    stop(paste(e, "when reading copy number file",
+               paste0(groupId, ".CN_compare_df_",
+                      argv$bin_in_kbases, "k", ".rds"))
+    )
+  }
 )
 scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
 
@@ -180,6 +187,6 @@ panelplot + labs(title=paste(
     bin_in_kbases, "kb copy numbers zoomed in on region of interest"))
 
 ggsave(filename = file.path(
-            paste0(strain, ".", "CNcolourpanels_chr", chrname, "_roi.pdf") )
+            paste0(groupId, ".", "CNcolourpanels_chr", chrname, "_roi.pdf") )
             , units = "mm", width = 180, height = 240
         )
