@@ -40,7 +40,7 @@ groupId <- argv$samplegroup
 copyNumsNormed <- tryCatch(
   readRDS( paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
                 ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds') )
          )
@@ -50,13 +50,14 @@ scaled_df <- tryCatch(
   readRDS( paste0(groupId, ".CN_compare_df_",
                   argv$bin_in_kbases, "k", ".rds")
   ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0(groupId, ".CN_compare_df_",
                       argv$bin_in_kbases, "k", ".rds"))
     )
   }
 )
+
 scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
 
 ## Copynum files are made with single parent,

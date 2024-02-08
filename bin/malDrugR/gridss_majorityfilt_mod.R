@@ -83,7 +83,7 @@ somvcf <- tryCatch(
   readVcf( 
     paste0(argv$samplegroup, "_high_and_imprecise.vcf")
     ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading GRIDSS somatic vcf",
                paste0(argv$samplegroup, "_high_and_imprecise.vcf") )
     )
