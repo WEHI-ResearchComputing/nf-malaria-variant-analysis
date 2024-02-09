@@ -58,7 +58,13 @@ scaled_df <- tryCatch(
   }
 )
 
-scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
+## Remove Apical and Mitochondrial genome bins from data if present, 
+## as genomes too small to show on same plot as nuclear
+if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
+} else {nonNuc <- c('Pf3D7_API_v3', 'Pf3D7_MIT_v3') }
+nucCN <- copyNumsNormed %>%
+  dplyr::filter( !(chrom %in% nonNuc) )
+scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) )
 
 ## Copynum files are made with single parent,
 ## with sample name matching parentId in groupkey
@@ -156,11 +162,8 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
         labs( x= paste( "Position in chromosome", chro, "(kb)" ), y="Scaled Copy number")
 }
 
-## Make a plot for parent plus un-scaled samples in a single column
+#### Make a plot for parent plus un-scaled samples in a single column ####
 ## Option to fix values for ymax and ymin to give better comparisons
-nucCN <- copyNumsNormed %>%
-    dplyr::filter( !(chrom %in% nonNuc) )
-
 plotset <- arrangeGrob(
     grobs = lapply(c( parentId, sampleL[order(sampleL)] ), function(samplen)
     { plotLogRow(nucCN, paste(samplen) , argv$bin_in_kbases
