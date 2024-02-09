@@ -45,7 +45,11 @@ parentId <- argv$parentId
 groupId <- argv$samplegroup
 
 #### Read stored results ####
-copyNumsNormed <- tryCatch(
+## Remove Apical and Mitochondrial genome bins from data if present, 
+if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
+} else {nonNuc <- c('Pf3D7_API_v3', 'Pf3D7_MIT_v3') }
+
+nucCN <- tryCatch(
   readRDS( paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
                 ),
   error <- function(e){
@@ -53,8 +57,9 @@ copyNumsNormed <- tryCatch(
                paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds') )
          )
   }
-)
-scaled_df <- tryCatch(
+) |>
+  dplyr::filter( !(chrom %in% nonNuc) )
+scaled_nuc <- tryCatch(
   readRDS( paste0(groupId, ".CN_compare_df_",
                   argv$bin_in_kbases, "k", ".rds")
   ),
@@ -64,8 +69,8 @@ scaled_df <- tryCatch(
                       argv$bin_in_kbases, "k", ".rds"))
     )
   }
-)
-scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
+) |>
+  dplyr::filter(scaled_df, !(chrom %in% nonNuc) )
 
 ## Copynum files are made with single parent,
 ## with sample name matching parentId in groupkey
@@ -104,9 +109,6 @@ plotLogRow <- function(binCounts, orgCol, bin_size, maxCN, minCN) {
 
 #### Make a plot for parent plus un-scaled samples in a single column ####
 ## Option to fix values for ymax and ymin to give better comparisons
-nucCN <- copyNumsNormed %>%
-    dplyr::filter( !(chrom %in% nonNuc) )
-
 plotset <- arrangeGrob(
     grobs = lapply(c( parentId, sampleL[order(sampleL)] ), function(samplen)
     { plotLogRow(

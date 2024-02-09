@@ -61,12 +61,11 @@ scaled_df <- tryCatch(
     )
   }
 )
-scaled_nuc <- dplyr::filter(scaled_df, !(chrom %in% nonNuc) ) 
 
 ## Copynum files are made with single parent,
 ## with sample name matching parentId in groupkey
-sampleL <- colnames( scaled_nuc )[which( 
-    str_detect( colnames( scaled_nuc ), parentId ) ) ] %>%
+sampleL <- colnames( scaled_df )[which( 
+    str_detect( colnames( scaled_df ), parentId ) ) ] %>%
     str_remove( paste( ' vs.', parentId ) )
 
 #### Define functions ####
@@ -110,7 +109,7 @@ panelplot <- plotZoomedROI(
 
 ggsave(
   filename = file.path(
-    plotDir, paste0(strain, ".", "CNcolourpanels_chr", chrname, "_roi.pdf")
+    plotDir, paste0(groupId, ".", "CNcolourpanels_chr", chrname, "_roi.pdf")
   ),
   units = "mm", width = 180, height = 240
 )
