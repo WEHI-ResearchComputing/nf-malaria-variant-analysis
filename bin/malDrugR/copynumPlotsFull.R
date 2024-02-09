@@ -52,7 +52,7 @@ if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
 nucCN <- tryCatch(
   readRDS( paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
                 ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds') )
          )
@@ -63,7 +63,7 @@ scaled_nuc <- tryCatch(
   readRDS( paste0(groupId, ".CN_compare_df_",
                   argv$bin_in_kbases, "k", ".rds")
   ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0(groupId, ".CN_compare_df_",
                       argv$bin_in_kbases, "k", ".rds"))

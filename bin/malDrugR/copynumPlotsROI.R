@@ -54,7 +54,7 @@ scaled_df <- tryCatch(
   readRDS( paste0(groupId, ".CN_compare_df_",
                   argv$bin_in_kbases, "k", ".rds")
   ),
-  error <- function(e){
+  error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0(groupId, ".CN_compare_df_",
                       argv$bin_in_kbases, "k", ".rds"))
