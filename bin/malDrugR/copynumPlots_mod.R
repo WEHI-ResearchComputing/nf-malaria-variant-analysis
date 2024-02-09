@@ -57,7 +57,6 @@ scaled_df <- tryCatch(
     )
   }
 )
-
 ## Remove Apical and Mitochondrial genome bins from data if present, 
 ## as genomes too small to show on same plot as nuclear
 if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
