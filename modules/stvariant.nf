@@ -203,11 +203,23 @@ process RPlot {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsFull.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --refDir ${refpath} \
-        --bin_in_kbases ${params.bin_in_kbases} 
+        --bin_in_kbases ${params.bin_CNfull}  \
+        --lowerbound_plot ${params.lowerbound_fullCN}  \
+        --upperbound_plot ${params.upperbound_fullCN}
+
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsROI.R \
+        --samplegroup ${groupId} \
+        --parentId ${parentId} \
+        --strain ${prefix} \
+        --refDir ${refpath} \
+        --bin_in_kbases ${params.bin_CNroi} \
+        --chrOI ${params.chr_CNroi} \
+        --startROI ${params.start_CNroi} \
+        --endROI ${params.end_CNroi}
     """
 }
 
