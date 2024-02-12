@@ -32,16 +32,12 @@ argp <- add_argument(argp, "--endROI",
 argp <- add_argument(argp, "--parentId",
                      help = "parent name of related samples. Required"
 )
-argp <- add_argument(argp, "--refDir",
-                     help = "reference directory "
-)
 argp <- add_argument(argp, "--bin_in_kbases",
                      default = "1",
                      help = "bin size in kbp"
 )
 
 argv <- parse_args(argp)
-refDir <- argv$refDir
 
 bin_in_kbases <- argv$bin_in_kbases
 ## Parent samples and samples of interest
