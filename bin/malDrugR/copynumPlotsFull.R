@@ -20,9 +20,6 @@ argp <- add_argument(argp, "--samplegroup",
 argp <- add_argument(argp, "--parentId",
                      help = "parent name of related samples. Required"
 )
-argp <- add_argument(argp, "--refDir",
-                     help = "reference directory "
-)
 argp <- add_argument(argp, "--bin_in_kbases",
                      default = "5",
                      help = "bin size in kbp"
@@ -37,7 +34,6 @@ argp <- add_argument(argp, "--upperbound_plot",
 )
 
 argv <- parse_args(argp)
-refDir <- argv$refDir
 
 bin_in_kbases <- argv$bin_in_kbases
 ## Parent samples and samples of interest
@@ -46,8 +42,8 @@ groupId <- argv$samplegroup
 
 #### Read stored results ####
 ## Remove Apical and Mitochondrial genome bins from data if present, 
-if(ref$strain == 'Dd2') {nonNuc <- c( 'PfDd2_API', 'PfDd2_MT')
-} else {nonNuc <- c('Pf3D7_API_v3', 'Pf3D7_MIT_v3') }
+nonNuc <- c( 'PfDd2_API', 'PfDd2_MT',
+             'Pf3D7_API_v3', 'Pf3D7_MIT_v3')
 
 nucCN <- tryCatch(
   readRDS( paste0( groupId, '.CN_df_', bin_in_kbases, 'k.rds')
