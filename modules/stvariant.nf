@@ -119,7 +119,7 @@ process RCopyNum {
             path(mergedparent), 
             val(bamfilenames), 
             path(bams), 
-            val(dummy)
+            val(dummy),val(bins)
 
     output:
     tuple val(groupId), path("*.rds")
@@ -130,7 +130,7 @@ process RCopyNum {
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
-        --bin_in_kbases ${params.bin_in_kbases} \
+        --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}
     
@@ -188,14 +188,14 @@ process MajorityFilter {
     """
 }
 
-process RPlot {
+process RPlotFull {
     label 'Rfilter'    
     tag "${groupId}"   
     
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(parentId),val(refpath),
+    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
             path(rds)
 
     output:
@@ -210,7 +210,23 @@ process RPlot {
         --bin_in_kbases ${params.bin_CNfull}  \
         --lowerbound_plot ${params.lowerbound_fullCN}  \
         --upperbound_plot ${params.upperbound_fullCN}
+    """
+}
+process RPlotROI {
+    label 'Rfilter'    
+    tag "${groupId}"   
+    
+    publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
+    
+    input:
+    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
+            path(rds)
 
+    output:
+    tuple val(groupId), path("*.pdf")
+
+    script:
+    """
     Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsROI.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \

@@ -24,7 +24,9 @@ include { RCopyNum } from './modules/stvariant.nf'
 include { InstallR } from './modules/stvariant.nf'
 include { FilterBcfVcf } from './modules/stvariant.nf'
 include { MajorityFilter } from './modules/stvariant.nf'
-include { RPlot } from './modules/stvariant.nf'
+include { RPlotFull } from './modules/stvariant.nf'
+include { RPlotROI } from './modules/stvariant.nf'
+
 include{ FastQC } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
@@ -52,7 +54,7 @@ workflow {
         """)
     }
     .splitCsv(header:true,sep:'\t')
-    .set{input_ch} // Emits a row [groupId	sampleId	fastqbase	ref	parentId]
+    .set{input_ch} // Emits groupId,	sampleId,	fastqbase,	ref, parentId
     
     //-----------------------------------------------------------------
     //----------------Alignment-----------------------------------------
@@ -69,10 +71,8 @@ workflow {
                     else if (row.ref =="Dd2") {
                         ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
                     }
-                    println(ref)
-                    println(row.ref)
                     return tuple(row.sampleId,row.groupId,row.fastqbase,ref)
-                }.set{bwa_input_ch}// Emit tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
+                }.set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
 
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
@@ -81,29 +81,42 @@ workflow {
     //----------------Merge&List---------------------------------------
     input_ch.map{row -> 
                 return row.parentId
-            }.unique().combine(bam_ch.bamnodup,by:0)
+            }.unique()
+            .combine(bam_ch.bamnodup,by:0)
             .map{row -> tuple(row[0],row[1], row[1].baseName+".bam")
             }.groupTuple()
             .map{row -> 
                     tuple(row[0],row[1], row[2].join(" "))
-            }.set{parent_ch} // Emit tuple val(parentId),path(bams), val(parentlist)
+            }
+            .ifEmpty {
+                    error("""
+                    No parent samples found.
+                    """)
+            }
+            .set{parent_ch} // Emits tuple val(parentId),path(bams), val(parentlist)
     
     input_ch.map{row -> 
                 return row.parentId
             }.unique().combine(bam_ch.bai,by:0)
             .groupTuple()
             .join(parent_ch)
+            .ifEmpty {
+                    error("""
+                    No parent samples found.
+                    """)
+            }
             .set{parent_all_ch} // Emits tuple val(parentId),path(bai),path(bams), val(parentlist)
-   
+    
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
-    //-----------------------------------------------------------------
+   
+    // //-----------------------------------------------------------------
 
     //----------------QC tools------------------------------------------
     MultiQC(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]))  
     //-----------------------------------------------------------------
 
     //----------------BCF tools----------------------------------------
-    // BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
+    //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> 
                     def ref=""
                     if (row.ref =="3D7") {
@@ -134,14 +147,19 @@ workflow {
                     return tuple(row.groupId,row.parentId,ref)
                 }.unique()
                 .join(bamlist_ch.map{gid,filepath ->
-                        def fileLines = filepath.readLines() // Reads the file lines into a list
-                        def fileContents = fileLines.join(' ') // Joins the lines with a space
-                        return tuple(gid, fileContents)  // Returns a tuple of the groupid and the original filepath
+                        def fileLines = filepath.readLines() 
+                        def fileContents = fileLines.join(' ') 
+                        return tuple(gid, fileContents)  
                 })
                 .combine(bam_ch.bamnodup,by:0)
                 .groupTuple(by:[0,1,2,3])
-                .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
-
+                .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1)
+                .ifEmpty {
+                    error("""
+                    Input to gridss is empty.
+                    """)
+                }
+                .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
     gridss_ch=Gridss(gridss_input_ch)
     
     dummy_ch=InstallR()
@@ -179,16 +197,24 @@ workflow {
                 .combine(merged_ch,by:0)
                 .map{row -> if (row[0]) tuple(row[1],row[0],row[2],row[3],row[4])}
                 .join(bamlist_ch.map{gid,filepath ->
-                         def fileLines = filepath.readLines() // Reads the file lines into a list
-                         def fileContents = fileLines.join(' ') // Joins the lines with a space
-                         return tuple(gid, fileContents)  // Returns a tuple of the groupid and the original filepath
+                         def fileLines = filepath.readLines() 
+                         def fileContents = fileLines.join(' ') 
+                         return tuple(gid, fileContents)  
                 })
                 .combine(bam_ch.bamnodup,by:0)
                 .groupTuple(by:[0,1,2,3,4,5])
                 .combine(dummy_ch)
-                .set{copynum_input_ch}//Emit val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
+                .ifEmpty {
+                    error("""
+                    Input to CompyNum Analysis is empty.
+                    """)
+                }
+                .set{copynum_input_ch}//Emits val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
     
-    copynum_ch=RCopyNum(copynum_input_ch)
+    copynum_ch=RCopyNum(copynum_input_ch
+                                    .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] )).view()
+                        )
+
     //-------------------------------------------------------------------
     //----------------------filter BCF----------------------------------- 
     input_ch.map{row -> 
@@ -207,7 +233,7 @@ workflow {
                 .join(bam_ch.bamnodup.groupTuple(),by:0)
                 .join(bam_ch.bai.groupTuple(),by:0)
                 .combine(dummy_ch)
-                .set{fbcf_ch}   // Emit val(groupId),val(refpath),val(prefix),
+                .set{fbcf_ch}   // Emits val(groupId),val(refpath),val(prefix),
                                 // path(parentbai),path(parentbam), val(parentbamlist), 
                                 // path(vcf), 
                                 // path(bams), path(bai), val(dummy)
@@ -227,8 +253,7 @@ workflow {
     //-------------------------------------------------------------------
     //----------------------Plot-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
-                
-    RPlot(input_ch.map{row ->     
+    input_ch.map{row ->     
                     refpath=""
                     bsref=""
                     if (row.ref =="3D7") {
@@ -241,6 +266,8 @@ workflow {
                     }
                     return tuple(row.groupId,row.parentId,refpath,bsref)
                 }.unique()
-                .join(copynum_ch,by:0))
+                .join(copynum_ch,by:0).set{plot_ch}
+    RPlotFull(plot_ch)
+    RPlotROI(plot_ch)
     //-------------------------------------------------------------------
 }
