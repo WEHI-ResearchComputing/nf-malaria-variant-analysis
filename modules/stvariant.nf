@@ -195,7 +195,7 @@ process RPlotFull {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
+    tuple  val(groupId),val(parentId),val(prefix),
             path(rds)
 
     output:
@@ -206,7 +206,6 @@ process RPlotFull {
     Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsFull.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --refDir ${refpath} \
         --bin_in_kbases ${params.bin_CNfull}  \
         --lowerbound_plot ${params.lowerbound_fullCN}  \
         --upperbound_plot ${params.upperbound_fullCN}
@@ -219,7 +218,7 @@ process RPlotROI {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(parentId),val(refpath),val(prefix),
+    tuple  val(groupId),val(parentId),val(prefix),
             path(rds)
 
     output:
@@ -231,7 +230,6 @@ process RPlotROI {
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --strain ${prefix} \
-        --refDir ${refpath} \
         --bin_in_kbases ${params.bin_CNroi} \
         --chrOI ${params.chr_CNroi} \
         --startROI ${params.start_CNroi} \

@@ -45,7 +45,7 @@ process foo {
 }
 
 workflow {
-    //----------------Imput Preparation-----------------------------------------
+    //----------------Input Preparation-----------------------------------------
     Channel.fromPath(params.input_file,checkIfExists:true)
     .ifEmpty{
         error("""
@@ -63,6 +63,18 @@ workflow {
                         .map{
                                 row -> tuple(row.baseName.split("_bams")[0],row)
                             } // Emits groupID, bamslist.txt
+    Channel.fromFilePairs("${params.input_seq_path}/*_{,R}{1,2}*.{fq,fastq}{,.gz}", size: 2 )
+            .ifEmpty {
+                    error("""
+                    No samples could be found! Please check whether your input directory
+                    is correct, and that your samples match typical fastq paired end naming
+                    convention(s).
+                    """)
+            }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])
+
+            }
+            .set {fastq_input_channel  }
+    
     input_ch.map{row -> 
                     ref=""
                     if (row.ref =="3D7") {
@@ -71,9 +83,12 @@ workflow {
                     else if (row.ref =="Dd2") {
                         ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
                     }
-                    return tuple(row.sampleId,row.groupId,row.fastqbase,ref)
-                }.set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
-
+                    return tuple(row.fastqbase,row.sampleId,row.groupId,ref)
+                }
+                //.view()
+                .join(fastq_input_channel,by:0)
+                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
+   
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
     //-----------------------------------------------------------------
@@ -109,8 +124,7 @@ workflow {
     
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
    
-    // //-----------------------------------------------------------------
-
+    //------------------------------------------------------------------
     //----------------QC tools------------------------------------------
     MultiQC(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]))  
     //-----------------------------------------------------------------
@@ -212,7 +226,7 @@ workflow {
                 .set{copynum_input_ch}//Emits val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
     
     copynum_ch=RCopyNum(copynum_input_ch
-                                    .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] )).view()
+                                    .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
                         )
 
     //-------------------------------------------------------------------
@@ -254,17 +268,17 @@ workflow {
     //----------------------Plot-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
     input_ch.map{row ->     
-                    refpath=""
+                    
                     bsref=""
                     if (row.ref =="3D7") {
-                        refpath=params.ref3D7_path
+                        
                         bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
                     }        
                     else if (row.ref =="Dd2") {
-                        refpath=params.refDd2_path
+                        
                         bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
                     }
-                    return tuple(row.groupId,row.parentId,refpath,bsref)
+                    return tuple(row.groupId,row.parentId,bsref)
                 }.unique()
                 .join(copynum_ch,by:0).set{plot_ch}
     RPlotFull(plot_ch)
