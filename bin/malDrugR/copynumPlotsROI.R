@@ -105,7 +105,7 @@ panelplot <- plotZoomedROI(
 
 ggsave(
   filename = file.path(
-    plotDir, paste0(groupId, ".", "CNcolourpanels_chr", chrname, "_roi.pdf")
+     paste0(groupId, ".", "CNcolourpanels_chr", argv$chrOI, "_roi.pdf")
   ),
   units = "mm", width = 180, height = 240
 )
