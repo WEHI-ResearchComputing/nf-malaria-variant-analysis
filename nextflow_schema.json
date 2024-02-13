@@ -145,10 +145,6 @@
         }
     ],
     "properties": {
-        "bin_in_kbases": {
-            "type": "integer",
-            "default": 1
-        },
         "qualcrit": {
             "type": "integer",
             "default": 50
@@ -161,10 +157,37 @@
             "type": "string",
             "default": "/vast/projects/malaria/nf-malaria-variant-analysis/bin/gridss_assets/gridss-2.13.2-gridss-jar-with-dependencies.jar",
             "hidden": true
+        },
+        "bin_CNfull": {
+            "type": "integer",
+            "default": 5
+        },
+        "bin_CNroi": {
+            "type": "integer",
+            "default": 1
+        },
+        "lowerbound_fullCN": {
+            "type": "number",
+            "default": 0.2
+        },
+        "upperbound_fullCN": {
+            "type": "integer",
+            "default": 36
+        },
+        "chr_CNroi": {
+            "type": "integer",
+            "default": 8
+        },
+        "start_CNroi": {
+            "type": "integer",
+            "default": 380
+        },
+        "end_CNroi": {
+            "type": "integer",
+            "default": 435
         }
     },
     "required": [
-        "bin_in_kbases",
         "qualcrit",
         "critsamplecount"
     ]
