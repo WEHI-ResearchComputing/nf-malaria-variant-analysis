@@ -228,7 +228,7 @@ workflow {
     copynum_ch=RCopyNum(copynum_input_ch
                                     .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
                         )
-
+    
     //-------------------------------------------------------------------
     //----------------------filter BCF----------------------------------- 
     input_ch.map{row -> 
@@ -267,20 +267,10 @@ workflow {
     //-------------------------------------------------------------------
     //----------------------Plot-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
-    input_ch.map{row ->     
-                    
-                    bsref=""
-                    if (row.ref =="3D7") {
-                        
-                        bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        
-                        bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
-                    }
-                    return tuple(row.groupId,row.parentId,bsref)
+    input_ch.map{row -> 
+                    return tuple(row.groupId,row.parentId)
                 }.unique()
-                .join(copynum_ch,by:0).set{plot_ch}
+                .join(copynum_ch.groupTuple().map{row-> tuple(row[0], row[1].flatten())},by:0).set{plot_ch}
     RPlotFull(plot_ch)
     RPlotROI(plot_ch)
     //-------------------------------------------------------------------
