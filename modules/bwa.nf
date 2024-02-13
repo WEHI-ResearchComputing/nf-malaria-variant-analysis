@@ -5,7 +5,8 @@ process Bwa {
     tag "${sampleId}"
     
     input:
-    tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
+    tuple val(fastqbase), val(sampleId),val(groupId), val(ref),
+                path(fastqs)
     
   
     output:
@@ -16,7 +17,7 @@ process Bwa {
     bwa mem -t ${task.cpus} -o ${sampleId}.sam \
             -R "@RG\\tID:${sampleId}\\tSM:${sampleId}\\tPL:ILLUMINA" \
             ${ref} \
-            '${params.input_seq_path}/${fastqbase}_R1_001.fastq.gz' '${params.input_seq_path}/${fastqbase}_R2_001.fastq.gz' 
+            '${fastqs[0]}' '${fastqs[1]}' 
     """
 }
 
