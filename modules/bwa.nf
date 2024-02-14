@@ -80,8 +80,6 @@ process WriteBamLists {
     script:
     """
     sed -i -e '\$a\\' ${inputfile}
-    declare -A assocArray
-
     {
         read
         while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
@@ -91,14 +89,9 @@ process WriteBamLists {
 
     {
         read
-        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
-            for gid in \${!assocArray[@]}
-            do
-            if [[ "\${assocArray[\${gid}]}" == "\$groupId" ]]; then
-                    echo \$sampleId"_nodup.bam" >> \$gid"_bams.txt"
-                fi
-                
-            done
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId parentbamlist
+        do
+            echo \$sampleId"_nodup.bam" >> \${groupId}"_bams.txt"
         done
     }< ${inputfile} 
     {
