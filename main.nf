@@ -54,9 +54,25 @@ workflow {
         """)
     }
     .splitCsv(header:true,sep:'\t')
-    .set{input_ch} // Emits groupId,	sampleId,	fastqbase,	ref, parentId
-    
-    //-----------------------------------------------------------------
+    .map{row ->
+        ref=""
+        refpath=""
+        bsref=""
+        if (row.ref =="3D7") {
+            ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
+            refpath=params.ref3D7_path
+            bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
+        }        
+        else if (row.ref =="Dd2") {
+            ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
+            refpath=params.refDd2_path
+            bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
+        }
+        return tuple(row.groupId,row.sampleId,row.fastqbase,row.ref, row.parentId,ref,refpath,bsref)
+    }
+    .set{input_ch} // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
+                   // 3->ref_prefix, 4->parentId, 5->ref (path+name)
+                   // 6->refpath , 7-> bsref
     //----------------Alignment-----------------------------------------
     bamlist_ch=WriteBamLists(Channel.fromPath(params.input_file,checkIfExists:true))
     bamlist_ch=bamlist_ch.flatten()
@@ -70,33 +86,18 @@ workflow {
                     is correct, and that your samples match typical fastq paired end naming
                     convention(s).
                     """)
-            }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])
-
-            }
-            .set {fastq_input_channel  }
+            }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])}
+            .set {fastq_input_channel}
     
-    input_ch.map{row -> 
-                    ref=""
-                    if (row.ref =="3D7") {
-                        ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-                    }
-                    return tuple(row.fastqbase,row.sampleId,row.groupId,ref)
-                }
-                //.view()
+    input_ch.map{row -> tuple(row[2],row[1],row[0],row[5])}
                 .join(fastq_input_channel,by:0)
-                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref)
+                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref),path(fastqs)
    
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
-    //-----------------------------------------------------------------
-
     //----------------Merge&List---------------------------------------
-    input_ch.map{row -> 
-                return row.parentId
-            }.unique()
+    input_ch.map{row -> row[4]}
+            .unique()
             .combine(bam_ch.bamnodup,by:0)
             .map{row -> tuple(row[0],row[1], row[1].baseName+".bam")
             }.groupTuple()
@@ -110,9 +111,8 @@ workflow {
             }
             .set{parent_ch} // Emits tuple val(parentId),path(bams), val(parentlist)
     
-    input_ch.map{row -> 
-                return row.parentId
-            }.unique().combine(bam_ch.bai,by:0)
+    input_ch.map{row -> row[4]}
+            .unique().combine(bam_ch.bai,by:0)
             .groupTuple()
             .join(parent_ch)
             .ifEmpty {
@@ -123,155 +123,105 @@ workflow {
             .set{parent_all_ch} // Emits tuple val(parentId),path(bai),path(bams), val(parentlist)
     
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
-   
-    //------------------------------------------------------------------
     //----------------QC tools------------------------------------------
     MultiQC(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]))  
-    //-----------------------------------------------------------------
-
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
-    input_ch.map{row -> 
-                    def ref=""
-                    if (row.ref =="3D7") {
-                        ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-                    }
-                    return tuple(row.groupId,row.parentId,ref)
-                }.unique()
-                .join(bamlist_ch)
-                .combine(bam_ch.bamnodup,by:0)
-                .groupTuple(by:[0,1,2,3])
-                .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch} // Emits val(parentId),val(groupId),val(ref), path(bamlist), path(bams),path(parentbams)
+    input_ch.map{row -> tuple(row[0],row[4],row[5])}
+            .unique()
+            .join(bamlist_ch)
+            .combine(bam_ch.bamnodup,by:0)
+            .groupTuple(by:[0,1,2,3])
+            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch} // Emits val(parentId),val(groupId),val(ref), path(bamlist), path(bams),path(parentbams)
     bcf_ch=Bcf(bcf_input_ch)
-    //---------------------------------------------------------------------
-
     //----------------------Gridss------------------------------------- 
-    input_ch.map{row -> 
-                    ref=""
-                    if (row.ref =="3D7") {
-                        ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-                    }
-                    
-                    return tuple(row.groupId,row.parentId,ref)
-                }.unique()
-                .join(bamlist_ch.map{gid,filepath ->
-                        def fileLines = filepath.readLines() 
-                        def fileContents = fileLines.join(' ') 
-                        return tuple(gid, fileContents)  
-                })
-                .combine(bam_ch.bamnodup,by:0)
-                .groupTuple(by:[0,1,2,3])
-                .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1)
-                .ifEmpty {
-                    error("""
-                    Input to gridss is empty.
-                    """)
-                }
-                .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
+    input_ch.map{row -> tuple(row[0],row[4],row[5])}
+            .unique()
+            .join(bamlist_ch.map{gid,filepath ->
+                    def fileLines = filepath.readLines() 
+                    def fileContents = fileLines.join(' ') 
+                    return tuple(gid, fileContents)  
+            })
+            .combine(bam_ch.bamnodup,by:0)
+            .groupTuple(by:[0,1,2,3])
+            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1)
+            .ifEmpty {
+                error("""
+                Input to gridss is empty.
+                """)
+            }
+            .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
     gridss_ch=Gridss(gridss_input_ch)
     
     dummy_ch=InstallR()
-    input_ch.map{row -> 
-                    bsref=""
-                    if (row.ref =="3D7") {
-                        bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
-                    }
-                    
-                    return tuple(row.parentId, row.groupId,bsref )
-                }.unique()
-                .combine(parent_ch,by:0).map{row -> tuple(row[1],row[2],row[5])}
-                .join(bamlist_ch).join(gridss_ch.vcf).combine(dummy_ch)
-                .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf), val(dummy)
+    input_ch.map{row -> tuple(row[4], row[0],row[7] )}
+            .unique()
+            .combine(parent_ch,by:0).map{row -> tuple(row[1],row[2],row[5])}
+            .join(bamlist_ch).join(gridss_ch.vcf).combine(dummy_ch)
+            .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf), val(dummy)
 
     sfilter_ch=SomaticFilter(sv_input_ch)
-    //-------------------------------------------------------------------
     //----------------------CopyNum--------------------------------------
-    input_ch.map{row -> 
-                    refpath=""
-                    bsref=""
-                    if (row.ref =="3D7") {
-                        refpath=params.ref3D7_path
-                        bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
-                    }        
-                    else if (row.ref =="Dd2") {
-                        refpath=params.refDd2_path
-                        bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
-                    }
-                    return tuple(row.parentId, row.groupId,refpath,bsref )
-                }.unique()
-                .combine(merged_ch,by:0)
-                .map{row -> if (row[0]) tuple(row[1],row[0],row[2],row[3],row[4])}
-                .join(bamlist_ch.map{gid,filepath ->
-                         def fileLines = filepath.readLines() 
-                         def fileContents = fileLines.join(' ') 
-                         return tuple(gid, fileContents)  
-                })
-                .combine(bam_ch.bamnodup,by:0)
-                .groupTuple(by:[0,1,2,3,4,5])
-                .combine(dummy_ch)
-                .ifEmpty {
-                    error("""
-                    Input to CompyNum Analysis is empty.
-                    """)
-                }
-                .set{copynum_input_ch}//Emits val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
+    input_ch.map{row -> tuple(row[4], row[0],row[6],row[7] )}
+            .unique()
+            .combine(merged_ch,by:0)
+            .map{row -> if (row[0]) tuple(row[1],row[0],row[2],row[3],row[4])}
+            .join(bamlist_ch.map{gid,filepath ->
+                def fileLines = filepath.readLines() 
+                def fileContents = fileLines.join(' ') 
+                return tuple(gid, fileContents)  
+            })
+            .combine(bam_ch.bamnodup,by:0)
+            .groupTuple(by:[0,1,2,3,4,5])
+            .combine(dummy_ch)
+            .ifEmpty {
+                error("""
+                Input to CopyNum Analysis is empty.
+                """)
+            }
+            .set{copynum_input_ch}//Emits val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
     
     copynum_ch=RCopyNum(copynum_input_ch
-                                    .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
+                            .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
                         )
-    
-    //-------------------------------------------------------------------
     //----------------------filter BCF----------------------------------- 
-    input_ch.map{row -> 
-                    refpath=""
-                    if (row.ref =="3D7") {
-                        refpath=params.ref3D7_path
-                    }        
-                    else if (row.ref =="Dd2") {
-                        refpath=params.refDd2_path
-                    }
-                    return tuple(row.parentId,row.groupId,refpath,row.ref)
-                }.unique()
-                .combine(parent_all_ch,by:0)
-                .map{row-> tuple(row[1],row[2],row[3],row[4],row[5],row[6])}
-                .join(bcf_ch, by:0)
-                .join(bam_ch.bamnodup.groupTuple(),by:0)
-                .join(bam_ch.bai.groupTuple(),by:0)
-                .combine(dummy_ch)
-                .set{fbcf_ch}   // Emits val(groupId),val(refpath),val(prefix),
-                                // path(parentbai),path(parentbam), val(parentbamlist), 
-                                // path(vcf), 
-                                // path(bams), path(bai), val(dummy)
+    input_ch.map{row -> tuple(row[4],row[0],row[6],row[3])}
+            .unique()
+            .combine(parent_all_ch,by:0)
+            .map{row-> tuple(row[1],row[2],row[3],row[4],row[5],row[6])}
+            .join(bcf_ch, by:0)
+            .join(bam_ch.bamnodup.groupTuple(),by:0)
+            .join(bam_ch.bai.groupTuple(),by:0)
+            .combine(dummy_ch)
+            .ifEmpty {
+                error("""
+                Input to filter is empty.
+                """)
+            }
+            .set{fbcf_ch}   // Emits val(groupId),val(refpath),val(prefix),
+                            // path(parentbai),path(parentbam), val(parentbamlist), 
+                            // path(vcf), 
+                            // path(bams), path(bai), val(dummy)
     FilterBcfVcf(fbcf_ch )            
-    //-------------------------------------------------------------------
     //----------------------Majority filter----------------------------------- 
-    input_ch.map{row ->     
-                    return tuple(row.groupId,row.parentId)
-                }.unique()
-                .combine(parent_ch.map{row->tuple(row[2],row[0])},by:1)
-                .map{row->tuple(row[1],row[2])}
-                .join(sfilter_ch.vcf)
-                .combine(dummy_ch)
-                .set{mjf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
-
+    input_ch.map{row -> tuple(row[0],row[4])}
+            .unique()
+            .combine(parent_ch.map{row->tuple(row[2],row[0])},by:1)
+            .map{row->tuple(row[1],row[2])}
+            .join(sfilter_ch.vcf)
+            .combine(dummy_ch)
+            .set{mjf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
     MajorityFilter(mjf_ch)
-    //-------------------------------------------------------------------
     //----------------------Plot-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
-    input_ch.map{row -> 
-                    return tuple(row.groupId,row.parentId)
-                }.unique()
-                .join(copynum_ch.groupTuple().map{row-> tuple(row[0], row[1].flatten())},by:0).set{plot_ch}
+    input_ch.map{row -> tuple(row[0],row[4])}
+            .unique()
+            .join(copynum_ch.groupTuple().map{row-> tuple(row[0], row[1].flatten())},by:0).set{plot_ch}
     RPlotFull(plot_ch)
     RPlotROI(plot_ch)
     //-------------------------------------------------------------------
 }
+
+
+
+

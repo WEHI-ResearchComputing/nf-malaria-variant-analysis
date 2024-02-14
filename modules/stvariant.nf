@@ -229,7 +229,6 @@ process RPlotROI {
     Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsROI.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        
         --bin_in_kbases ${params.bin_CNroi} \
         --chrOI ${params.chr_CNroi} \
         --startROI ${params.start_CNroi} \
