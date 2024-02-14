@@ -108,7 +108,7 @@ plotLogRow <- function(binCounts, orgCol, bin_size, maxCN, minCN) {
 plotset <- arrangeGrob(
     grobs = lapply(c( parentId, sampleL[order(sampleL)] ), function(samplen)
     { plotLogRow(
-      allCN, samplen, argv$bin_in_kbases,
+      nucCN, samplen, argv$bin_in_kbases,
       maxCN = argv$upperbound_plot,
       minCN = argv$lowerbound_plot
     ) + theme(title = element_text(size = 8),
