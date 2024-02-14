@@ -66,7 +66,7 @@ scaled_nuc <- tryCatch(
     )
   }
 ) |>
-  dplyr::filter(scaled_df, !(chrom %in% nonNuc) )
+  dplyr::filter(!(chrom %in% nonNuc) )
 
 ## Copynum files are made with single parent,
 ## with sample name matching parentId in groupkey
