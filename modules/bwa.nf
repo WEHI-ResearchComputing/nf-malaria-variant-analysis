@@ -86,7 +86,6 @@ process WriteBamLists {
     {
         read
         while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
-            echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
             assocArray[\$groupId]=\${parentId//[\$'\\t\\r\\n ']}
         done 
     }< 	${inputfile}
@@ -103,5 +102,12 @@ process WriteBamLists {
             done
         done
     }< ${inputfile} 
+    {
+        read
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
+            echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
+        done 
+    }< 	${inputfile}
+
     """
 }
