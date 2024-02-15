@@ -116,7 +116,7 @@ plotset <- arrangeGrob(
               axis.text = element_text(size = 6))
         }),
     ncol = 1)
-plot(plotset)
+
 ggsave( plotset, filename = file.path(paste0(groupId, "_copynums_", 
                     bin_in_kbases, "k.pdf") )
             , units = "mm", width = 297, height = 210 
