@@ -66,8 +66,7 @@ makePfBins <- function(bin_in_kbases) {
   if (file.exists(binRfile)) {
     pfBins <- readRDS(binRfile)
   } else {
-    pfBins <- createBins(pfg, as.numeric(bin_in_kbases),
-      excludeSeqnames = c("Pf3D7_API_v3", "Pf3D7_MIT_v3")
+    pfBins <- createBins(pfg, as.numeric(bin_in_kbases)
     )
     mapityfile <- file.path(
       refDir, "mappability",
@@ -154,7 +153,7 @@ countsinbins <- Biobase::combine(counts_parents, countsinbins)
 ## No residuals calculated
 countsFiltered <- applyFilters(
   countsinbins,
-  residual = FALSE, mappability = 50, blacklist = FALSE # (ref$strain=='3D7')
+  residual = FALSE, mappability = 50, blacklist = FALSE
 )
 
 ## Estimate the correction for GC content and mappability.
