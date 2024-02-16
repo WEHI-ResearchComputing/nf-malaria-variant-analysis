@@ -405,7 +405,7 @@ if (nrow(indelGene) > 0){
   baseIDEvents <- str_replace(
     indels.Feat.df$ID, "^.*P", "P"
   ) |>
-    str_remove("\\..*$")
+    str_remove("[\\.\\-]*$")
   geneDetail <- map(baseIDEvents, function(ID) {
     genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
     data.frame(
@@ -455,7 +455,7 @@ snps.Feat.df <- data.frame(
 baseIDEvents <- str_replace(
     snps.Feat.df$ID, "^.*P", "P"
 ) |>
-    str_remove("\\..*$")
+    str_remove("[\\.\\-].*$")
 geneDetail <- map(baseIDEvents, function(ID) {
     genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
     data.frame(
