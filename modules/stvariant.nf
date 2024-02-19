@@ -102,7 +102,8 @@ process SomaticFilter{
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
 
-    echo "Output:"\$parentcount, \$samplecount, \$tumourordinals > output.txt
+    echo "GRIDSS somatic filter used 1st line of \${groupId}_bams.txt as Normal sample" > output.txt
+    echo "and lines \$tumourordinals as 'tumour' samples." >> output.txt
     
     """
 }
@@ -141,7 +142,7 @@ process RCopyNum {
 process FilterBcfVcf {
     label 'Rfilter'  
     tag "${groupId}"   
-    publishDir "${params.outdir}/variants/SVs", mode: 'copy'
+    publishDir "${params.outdir}/variants/snvs_indels", mode: 'copy'
 
     input:
     tuple  val(groupId),val(refpath),val(prefix),
