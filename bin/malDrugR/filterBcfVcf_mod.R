@@ -306,7 +306,7 @@ countalleles <- function(bamfile, vcf) {
 SNPalleleCounts <- map(
   c(
     paste0(samplesOI, "_nodup.bam"),
-    paste0(parentlist, "_nodup.bam")
+    paste0(argv$parentlist)
   ),
   countalleles,
   vcf = snpCDS
@@ -405,7 +405,7 @@ if (nrow(indelGene) > 0){
   baseIDEvents <- str_replace(
     indels.Feat.df$ID, "^.*P", "P"
   ) |>
-    str_remove("[\\.\\-]*$")
+    str_remove("[\\.\\-].*$")
   geneDetail <- map(baseIDEvents, function(ID) {
     genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
     data.frame(
