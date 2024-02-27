@@ -273,9 +273,14 @@ countalleles <- function(bamfile, vcf) {
         subjectHits()
     ]
     PosInSeq <- mapToAlignments(vcfgr, eventSeq)
-    refwidthDNA <- subseq(mcols(eventSeq)$seq,
-      start = start(PosInSeq),
-      width = width(vcfgr$REF)
+    refwidthDNA <- tryCatch(
+        subseq(mcols(eventSeq)$seq,
+        start = start(PosInSeq),
+        width = width(vcfgr$REF)
+        ),
+        error = function(e) {
+            print(paste(vcfgr, "REF does not fit within reads. Skipping"))
+        }
     )
     altwidthDNA <- tryCatch(
       subseq(mcols(eventSeq)$seq,
