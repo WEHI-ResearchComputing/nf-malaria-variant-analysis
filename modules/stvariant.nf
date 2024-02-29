@@ -102,7 +102,7 @@ process SomaticFilter{
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
 
-    echo "GRIDSS somatic filter used 1st line of \${groupId}_bams.txt as Normal sample" > output.txt
+    echo "GRIDSS somatic filter used 1st line of ${groupId}_bams.txt as Normal sample" > output.txt
     echo "and lines \$tumourordinals as 'tumour' samples." >> output.txt
     
     """
