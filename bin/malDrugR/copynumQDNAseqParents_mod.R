@@ -12,9 +12,9 @@
 library(argparser)
 argp <- arg_parser(paste(
   "Read a set of bam files, ", "count reads in bins defined on a reference genome",
-  ", and save copy number scores. Intermediate files are read if available.",
-  "\nA data frame of copynumbers of samples scaled relative to a 'parent'",
-  " reference sample is also saved."
+  ", and calculate copy number scores. Intermediate files are read if available.",
+  "\nData frames of normalised CN and CN of samples scaled relative to a 'parent'",
+  " sample are saved as RDS."
 ))
 argp <- add_argument(argp, "--samplegroup",
                      help = "Group name of related samples. Required"
@@ -45,12 +45,12 @@ suppressPackageStartupMessages(library("QDNAseq"))
 suppressPackageStartupMessages(library("Biobase"))
 suppressPackageStartupMessages(library(devtools))
 
-strain <- argv$samplegroup
+groupId <- argv$samplegroup
 parentID <- argv$parentId
 refDir <- argv$refDir
-strainbamL <- strsplit(argv$bams, " ")[[1]]
-strainbamL <- strainbamL[!grepl(parentID, strainbamL)]
-sampleL <- sub("_nodup\\.bam$", "", strainbamL)
+groupbamL <- strsplit(argv$bams, " ")[[1]]
+groupbamL <- groupbamL[!grepl(parentID, groupbamL)]
+sampleL <- sub("_nodup\\.bam$", "", groupbamL)
 
 library(argv$bsref,
   character.only = TRUE
@@ -66,20 +66,24 @@ makePfBins <- function(bin_in_kbases) {
   if (file.exists(binRfile)) {
     pfBins <- readRDS(binRfile)
   } else {
-    pfBins <- createBins(pfg, as.numeric(bin_in_kbases),
-      excludeSeqnames = c("Pf3D7_API_v3", "Pf3D7_MIT_v3")
+    pfBins <- createBins(pfg, as.numeric(bin_in_kbases)
     )
     mapityfile <- file.path(
       refDir, "mappability",
       "kmer30_err2.bw"
     )
+    if( !file.exists(mapityfile) ){
+      stop(paste("Mappability file", mapityfile, "not found"))}
+    bigWigpath <- file.path(
+      "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
+      "bigWigAverageOverBed"
+    )
+    if( !file.exists(bigWigpath) ){
+      stop(paste(bigWigpath, "not found"))}
     pfBins$mappability <- calculateMappability(
       pfBins,
       bigWigFile = mapityfile,
-      bigWigAverageOverBed = file.path(
-        "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
-        "bigWigAverageOverBed"
-      ),
+      bigWigAverageOverBed = bigWigpath,
       chrPrefix = ""
     )
     pfBins <- AnnotatedDataFrame(
@@ -98,7 +102,7 @@ makePfBins <- function(bin_in_kbases) {
 }
 ###### Binned counts for samples ######
 
-## Parent strain handled separately because many groups use the same parent
+## Parent sample handled separately because many groups use the same parent
 parentcountsn <- file.path(
   paste0("Counts", argv$bin_in_kbases, "k_", parentID, ".rds")
 )
@@ -120,9 +124,9 @@ if (file.exists(parentcountsn)) {
 }
 
 
-## Resistant strains
+## Resistant samples
 countfilen <- paste0(
-  "Counts", argv$bin_in_kbases, "k_", strain,
+  "Counts", argv$bin_in_kbases, "k_", groupId,
   ".rds"
 )
 if (file.exists(file.path(countfilen))) {
@@ -133,7 +137,7 @@ if (file.exists(file.path(countfilen))) {
   }
   countsinbins <- binReadCounts(
     pfBins,
-    bamfiles = file.path(strainbamL),
+    bamfiles = file.path(groupbamL),
     bamnames = sampleL
   )
 
@@ -149,7 +153,7 @@ countsinbins <- Biobase::combine(counts_parents, countsinbins)
 ## No residuals calculated
 countsFiltered <- applyFilters(
   countsinbins,
-  residual = FALSE, mappability = 50, blacklist = FALSE # (ref$strain=='3D7')
+  residual = FALSE, mappability = 50, blacklist = FALSE
 )
 
 ## Estimate the correction for GC content and mappability.
@@ -165,7 +169,7 @@ copyNumsNormed <- normalizeBins(copyNums)
 ## Scale strain copy numbers by dividing by parent copy numbers
 StrainScaledByParents <- compareToReference(
   copyNumsNormed,
-  c(FALSE, rep(1, times = length(strainbamL)))
+  c(FALSE, rep(1, times = length(groupbamL)))
 )
 ## Function to convert QDNASeq object to data frame
 convertQDNAtoDF <- function(qobject) {
@@ -187,8 +191,8 @@ convertQDNAtoDF <- function(qobject) {
 }
 CN_df <- convertQDNAtoDF(copyNumsNormed)
 saveRDS(
-  scaled_df,
-  file.path(paste0(strain, ".CN_df_",
+  CN_df,
+  file.path(paste0(groupId, ".CN_df_",
       argv$bin_in_kbases, "k", ".rds"
     )
   )
@@ -196,7 +200,7 @@ saveRDS(
 scaled_df <- convertQDNAtoDF(StrainScaledByParents)
 saveRDS(
   scaled_df,
-  file.path(paste0(strain, ".CN_compare_df_",
+  file.path(paste0(groupId, ".CN_compare_df_",
       argv$bin_in_kbases, "k", ".rds"
     )
   )

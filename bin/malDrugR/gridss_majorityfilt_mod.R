@@ -34,7 +34,6 @@ argv <- parse_args(argp)
 
 
 ## GRIDSS function readVcf copied from "libgridss.R": 
-##source( file.path( argv$scriptdir,"libgridss.R"))
 readVcf = function(file, ...) {
     raw_vcf = VariantAnnotation::readVcf(file=file, ...)
     if (!all(unlist(alt(raw_vcf)) != "")) {
@@ -80,9 +79,16 @@ fix_parid = function(vcf) {
 }
 
 #### Read input vcf ####
-somvcf <- readVcf( 
-  file.path(paste0( argv$samplegroup, "_high_and_imprecise.vcf")
-  ) )
+somvcf <- tryCatch(
+  readVcf( 
+    paste0(argv$samplegroup, "_high_and_imprecise.vcf")
+    ),
+  error = function(e){
+    stop(paste(e, "when reading GRIDSS somatic vcf",
+               paste0(argv$samplegroup, "_high_and_imprecise.vcf") )
+    )
+  }
+)
 #----------- Filtering parameters -----------------
 parentlist <- str_split(argv$parentlist, ' ') |> unlist() |>
     str_remove("_nodup.bam$")

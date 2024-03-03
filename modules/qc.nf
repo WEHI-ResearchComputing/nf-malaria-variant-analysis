@@ -1,12 +1,11 @@
 process FastQC {
     label 'Fastqc' // assumes resources are defined in a label
-
+    tag "${groupId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
-
+    cache true
     input:
     path(bams)
     
-
     output:
     path("*.html"), emit: html
     path("*.zip") , emit: zip
@@ -20,7 +19,7 @@ process FastQC {
 
 process MultiQC {
     label 'Multiqc'
-    
+    cache true
     publishDir "${params.outdir}/multiqc/", mode: 'copy'
 
     input:

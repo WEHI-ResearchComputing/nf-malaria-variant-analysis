@@ -5,7 +5,8 @@ process Bwa {
     tag "${sampleId}"
     
     input:
-    tuple val(groupId),val(sampleId), val(fastqbase),val(ref)
+    tuple val(fastqbase), val(sampleId),val(groupId), val(ref),
+                path(fastqs)
     
   
     output:
@@ -13,11 +14,10 @@ process Bwa {
 
     script:
     """
-    echo "BWA Alignment"
     bwa mem -t ${task.cpus} -o ${sampleId}.sam \
             -R "@RG\\tID:${sampleId}\\tSM:${sampleId}\\tPL:ILLUMINA" \
             ${ref} \
-            '${params.input_seq_path}/${fastqbase}_R1_001.fastq.gz' '${params.input_seq_path}/${fastqbase}_R2_001.fastq.gz' 
+            '${fastqs[0]}' '${fastqs[1]}' 
     """
 }
 
@@ -33,13 +33,10 @@ process Index {
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
     tuple val(groupId), path("*_nodup*bai"), emit: bai
-    path("*_nodup.bam"), emit: bam_4qc
-    path("*_s.bam"), emit: s_bams
     path("*.metrics")
 
     script:
     """
-    echo "SAM Indexing"
     samtools view -b ${samfile}  |  \
     samtools sort -o ${sampleId}_s.bam -O bam -@ 4 -
     samtools index ${sampleId}_s.bam
@@ -53,15 +50,15 @@ process Index {
 
 process Merge{
     label 'Samtools'
-    tag "${groupId}-${parentId}"
+    tag "${parentId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(ref),val(refpath),val(prefix),val(bsref), val(parentId), val(parentbamlist),
-            path(parentbams)
+    tuple  val(parentId), path(parentbams), val(parentbamlist)
+            
     
     output:
-    tuple val(groupId),path("${parentId}.bam")
+    tuple val(parentId),path("${parentId}.bam")
 
     script:
     
@@ -76,31 +73,41 @@ process WriteBamLists {
 
     publishDir "${params.outdir}", mode: 'copy'
     input:
-    path(sample_key)
-    path(group_key)
+    path(inputfile)
 
     output:
-    path("*_bams.txt")
-    
+    path("*_bams.txt"), emit:bams
+
     script:
     """
+    sed -i -e '\$a\\' ${inputfile}
+    declare -A assocArray
+
     {
         read
-        while IFS=\$'\\t' read -r groupId	ref	parentId	parentbamlist; do
-            IFS=',' read -r -a array <<< "\$parentbamlist"
-            # Iterate over the array
-            for item in "\${array[@]}"; do
-                echo "\$item">> \$groupId"_bams.txt"
-            done
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
+            assocArray[\$groupId]=\${parentId//[\$'\\t\\r\\n ']}
         done 
-    }< ${group_key}
+    }< 	${inputfile}
+
     {
         read
-        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref; do
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
+            for gid in \${!assocArray[@]}
+            do
+            if [[ "\${assocArray[\${gid}]}" == "\$groupId" ]]; then
+                    echo \$sampleId"_nodup.bam" >> \$gid"_bams.txt"
+                fi
+                
+            done
+        done
+    }< ${inputfile} 
+    {
+        read
+        while IFS=\$'\\t' read -r groupId sampleId fastqbase ref parentId; do
             echo \$sampleId"_nodup.bam" >> \$groupId"_bams.txt"
         done 
-    }< ${sample_key}
-    
-     
+    }< 	${inputfile}
+
     """
 }
