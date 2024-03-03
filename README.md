@@ -9,5 +9,14 @@
 ./resumepipeline.sh
 ```
 
-This will use data files from `/vast/projects/malaria/data_sample/sh_400000` which are samples from the original data files.
+This will use all config parameters found in `nextflow.config`.
+
+## Format of samplegroup.txt
+
+It is a tab-delimited text file, with 5 columns. The columns are (`groupId`, `sampleId`, `fastqbase`, `ref`, `parentId`)
+
+### **Notes**
+* `sampleid` must contain `groupid`
+* No need for parentbamlist
+* If parent is not a sample add a line with no parentid
 
