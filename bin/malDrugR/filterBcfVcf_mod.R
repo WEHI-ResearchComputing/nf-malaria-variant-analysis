@@ -14,31 +14,35 @@ suppressPackageStartupMessages(library(AnnotationDbi))
 
 #### Read command-line arguments ####
 argp <- arg_parser(paste(
-    "Read a small-variant vcf file written by bcftools",
-    "and filter to good-quality variants that are not in reference samples"
+  "Read a small-variant vcf file written by bcftools",
+  "and filter to good-quality variants that are not in reference samples"
 ))
 argp <- add_argument(argp, "--samplegroup",
-                     help = "Group name of related samples. Required"
+  help = "Group name of related samples. Required"
 )
 argp <- add_argument(argp, "--refpath",
-                     help = "file path of reference"
+  help = "file path of reference"
 )
 argp <- add_argument(argp, "--refstrain",
-                     help = "strain name for reference"
+  help = "strain name for reference"
 )
 argp <- add_argument(argp, "--parentlist",
-                     help = "parent filenames in a space separated string"
+  help = "parent filenames in a space separated string"
 )
 
 argp <- add_argument(argp, "--QUALcrit",
-                     default = 50,
-                     help = paste("Critical value for filtering variants by",
-                                  "QUAL of variant call")
+  default = 50,
+  help = paste(
+    "Critical value for filtering variants by",
+    "QUAL of variant call"
+  )
 )
 argp <- add_argument(argp, "--critsamplecount",
-                     type = "double",
-                     help = paste("Minimum number of non-parent samples",
-                     "having a variant. Default is (#samples + 1)/2")
+  type = "double",
+  help = paste(
+    "Minimum number of non-parent samples",
+    "having a variant. Default is (#samples + 1)/2"
+  )
 )
 argv <- parse_args(argp)
 
@@ -58,14 +62,15 @@ pfCurrRefs <- data.frame(
 ref <- filter(pfCurrRefs, strain == argv$refstrain)
 
 # ---------- Read genomic features --------------------------------------------
-file.gff <- file.path(refDir,
-                      paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
+file.gff <- file.path(
+  refDir,
+  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
 )
 pf_features <- tryCatch(
   readGff3(file.gff, quiet = TRUE),
-  error = function(e){
-    stop(paste(e, "Filepath:",file.gff))
-}
+  error = function(e) {
+    stop(paste(e, "Filepath:", file.gff))
+  }
 )
 ## Filter to remove PfEMP1 var, rifin, and STEVOR genes, and pseudogenes
 ## - genes known to be highly variable and not relevant
@@ -99,8 +104,8 @@ chrinfo <-
         "OFFSET", "LINEBASES", "LINEWIDTH"
       )
     ),
-    error = function(e){
-      stop(paste(e, "Filepath:",file.chrinfo))
+    error = function(e) {
+      stop(paste(e, "Filepath:", file.chrinfo))
     }
   )
 grPfalc <- GRanges(
@@ -110,7 +115,7 @@ grPfalc <- GRanges(
 
 if (ref$strain == "3D7") { # haven't yet got this data for Dd2
   corepath <- file.path(refDir, "GenomeRegionsMilesEtAL_plus_10centromere.txt")
-  getRegions <- function(filep){
+  getRegions <- function(filep) {
     coreGenome <- read_delim(
       filep,
       delim = " ",
@@ -130,10 +135,13 @@ if (ref$strain == "3D7") { # haven't yet got this data for Dd2
   grCoreMT <- tryCatch(
     getRegions(corepath),
     error = function(err) {
-    warning(paste(err, corepath, 
-                  "\nRevert to full genome instead of core regions."))
-    return(grPfalc)
-  })
+      warning(paste(
+        err, corepath,
+        "\nRevert to full genome instead of core regions."
+      ))
+      return(grPfalc)
+    }
+  )
 }
 
 # ---------- Define filter functions -------------------------------------------
@@ -209,10 +217,9 @@ somatic <- function(gt, pgt) {
 # ---------- Read vcf files, and filter --------------------------------
 #
 samplevcf <- tryCatch(
-  readVcf(paste0(argv$samplegroup, ".vcf")
-  ),
-  error = function(e){
-    stop(paste(e, "Filepath:",paste0(argv$samplegroup, ".vcf")))
+  readVcf(paste0(argv$samplegroup, ".vcf")),
+  error = function(e) {
+    stop(paste(e, "Filepath:", paste0(argv$samplegroup, ".vcf")))
   }
 )
 ## Filter
@@ -222,14 +229,16 @@ eventFilt <- filt_vcf(
 )
 
 ## Filter again to majority of variants in samples are absent in parents
-samplesOI <- setdiff( rownames( colData( samplevcf ) ), parentlist ) |>
-    sort()
+samplesOI <- setdiff(rownames(colData(samplevcf)), parentlist) |>
+  sort()
 ## For replicate samples, a filtering criterion is that variants are
 ## present in critSamplesSom or more of the samples.
 ## The default value is half the number of (non-parent) samples.
 if (is.na(argv$critsamplecount) || length(argv$critsamplecount) == 0) {
-    critSamplesSom <- (1 + length(samplesOI)) / 2
-} else critSamplesSom <- argv$critsamplecount
+  critSamplesSom <- (1 + length(samplesOI)) / 2
+} else {
+  critSamplesSom <- argv$critsamplecount
+}
 
 majsom <- eventFilt[
   apply(
@@ -273,9 +282,10 @@ countalleles <- function(bamfile, vcf) {
         subjectHits()
     ]
     PosInSeq <- mapToAlignments(vcfgr, eventSeq)
-    refwidthDNA <- subseq(mcols(eventSeq)$seq,
-      start = start(PosInSeq),
-      width = width(vcfgr$REF)
+    refwidthDNA <- 
+      subseq(mcols(eventSeq)$seq,
+        start = start(PosInSeq),
+        width = width(vcfgr$REF)
     )
     altwidthDNA <- tryCatch(
       subseq(mcols(eventSeq)$seq,
@@ -286,9 +296,11 @@ countalleles <- function(bamfile, vcf) {
         print(paste(vcfgr, "ALT does not fit within reads. Skipping"))
       }
     )
-    countresult <- data.frame(SampleName=character(), variant=character(),
-                              TotCount=integer(), RefCount=integer(),
-                              AltCount=integer())
+    countresult <- data.frame(
+      SampleName = character(), variant = character(),
+      TotCount = integer(), RefCount = integer(),
+      AltCount = integer()
+    )
     if (class(altwidthDNA) == "DNAStringSet") {
       countresult <- data.frame(
         SampleName = basename(bamfile) |>
@@ -306,7 +318,7 @@ countalleles <- function(bamfile, vcf) {
 SNPalleleCounts <- map(
   c(
     paste0(samplesOI, "_nodup.bam"),
-    paste0(parentlist, "_nodup.bam")
+    paste0(argv$parentlist)
   ),
   countalleles,
   vcf = snpCDS
@@ -319,18 +331,19 @@ SNPalleleCounts <- arrange(SNPalleleCounts, variant)
 #### Annotate SNPs ####
 #### Load genome and transcript db
 transcriptdb <- file.path(
-  refDir,   
+  refDir,
   paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
 )
 txdb <- tryCatch(
   txdb <- loadDb(transcriptdb),
-  error = function(e){
-    stop(paste(e, "Filepath:",transcriptdb))
+  error = function(e) {
+    stop(paste(e, "Filepath:", transcriptdb))
   }
 )
-library(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version),
-        character.only = TRUE )
-pfg <- get(paste0("BSgenome.Pfalciparum",ref$strain,".PlasmoDB.",ref$version))
+library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
+  character.only = TRUE
+)
+pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
 
 #### AA prediction for SNPs in CDS
 AApred <- predictCoding(query = snpCDS, subject = txdb, seqSource = pfg)
@@ -340,11 +353,10 @@ mcols(AApred)$warning <- NA
 if (paste(AApred$CDSID, AApred$PROTEINLOC) |> unlist() |> n_distinct() <
   length(AApred)
 ) {
-  multihit <- mcols(AApred) |>
+  multihit <- which(mcols(AApred) |>
     as.data.frame() |>
-    group_by(CDSID, PROTEINLOC) |>
-    filter(n() > 1) |>
-    rownames()
+    add_count(CDSID, PROTEINLOC) |>
+    dplyr::select(n) > 1)
   mcols(AApred[multihit])$warning <- "multihit on codon"
 }
 
@@ -390,22 +402,22 @@ eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
   select = "last"
 )
 indelGene <- subset(majsom[!is.na(eventGene)], INDEL)
-if (nrow(indelGene) > 0){
+if (nrow(indelGene) > 0) {
   indelGeneAttr <- pf_featuresNovar[
     findOverlaps(rowRanges(indelGene), GRanges(pf_featuresNovar),
-                 select = "last"
+      select = "last"
     )
   ]
   #### Get gene details for indels ####
   indels.Feat.df <- data.frame(
-    rowRanges(indelGene)[,c("REF", "ALT", "QUAL")],
+    rowRanges(indelGene)[, c("REF", "ALT", "QUAL")],
     ID = getGffAttribute(indelGeneAttr, "ID") |> unlist()
-  ) 
-  
+  )
+
   baseIDEvents <- str_replace(
     indels.Feat.df$ID, "^.*P", "P"
   ) |>
-    str_remove("\\..*$")
+    str_remove("[\\.\\-].*$")
   geneDetail <- map(baseIDEvents, function(ID) {
     genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
     data.frame(
@@ -414,23 +426,24 @@ if (nrow(indelGene) > 0){
     )
   }) |>
     list_rbind()
-  indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |> 
+  indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |>
     dplyr::select(-width, -strand) |>
     mutate(
       Gene = case_when(
-        is.na(GeneName) ~ Description |> 
+        is.na(GeneName) ~ Description |>
           str_replace_all(pattern = "\\+", replacement = " "),
-        TRUE ~ GeneName),
-      ALT = CharacterList(ALT) |> unstrsplit(sep=','),
+        TRUE ~ GeneName
+      ),
+      ALT = CharacterList(ALT) |> unstrsplit(sep = ","),
       GeneName = NULL, Description = NULL
     )
 } else {
-  indels.Feat.df <- data.frame(Gene=character(), ALT=character())
+  indels.Feat.df <- data.frame(Gene = character(), ALT = character())
 }
 
 ## Report indels in gene regions
 write_tsv(
-    indels.Feat.df,
+  indels.Feat.df,
   file.path(
     varDir,
     paste0(
@@ -442,41 +455,42 @@ write_tsv(
 
 #### Get gene details for SNPs ####
 snpCDSAttr <- pf_featuresNovar[
-    findOverlaps(GRanges(AApred), GRanges(pf_featuresNovar),
-                 select = "last"
-    )
+  findOverlaps(GRanges(AApred), GRanges(pf_featuresNovar),
+    select = "last"
+  )
 ]
 
 snps.Feat.df <- data.frame(
-    seqnames = seqnames(AApred),
-    pos = start(AApred),
-    ID=getGffAttribute(snpCDSAttr, "ID") |> unlist()
-) 
+  seqnames = seqnames(AApred),
+  pos = start(AApred),
+  ID = getGffAttribute(snpCDSAttr, "ID") |> unlist()
+)
 baseIDEvents <- str_replace(
-    snps.Feat.df$ID, "^.*P", "P"
+  snps.Feat.df$ID, "^.*P", "P"
 ) |>
-    str_remove("\\..*$")
+  str_remove("[\\.\\-].*$")
 geneDetail <- map(baseIDEvents, function(ID) {
-    genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
-    data.frame(
-        GeneName = getGffAttribute(genegff, "Name"),
-        Description = getGffAttribute(genegff, "description"),
-        GeneID = ID
-    )
+  genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
+  data.frame(
+    GeneName = getGffAttribute(genegff, "Name"),
+    Description = getGffAttribute(genegff, "description"),
+    GeneID = ID
+  )
 }) |>
-    list_rbind()
+  list_rbind()
 snps.Feat.df <- cbind(snps.Feat.df, geneDetail) |>
-    mutate(
-        Gene = case_when(
-            is.na(GeneName) ~ Description |> 
-                str_replace_all(pattern = "\\+", replacement = " "),
-            TRUE ~ GeneName),
-        GeneName = NULL, Description = NULL, ID = NULL
-        )
+  mutate(
+    Gene = case_when(
+      is.na(GeneName) ~ Description |>
+        str_replace_all(pattern = "\\+", replacement = " "),
+      TRUE ~ GeneName
+    ),
+    GeneName = NULL, Description = NULL, ID = NULL
+  )
 
 SNPdetails <- left_join(
   SNPdetails, snps.Feat.df
-  )
+)
 
 write_tsv(
   SNPdetails,

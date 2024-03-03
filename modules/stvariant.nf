@@ -102,7 +102,8 @@ process SomaticFilter{
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
 
-    echo "Output:"\$parentcount, \$samplecount, \$tumourordinals > output.txt
+    echo "GRIDSS somatic filter used 1st line of ${groupId}_bams.txt as Normal sample" > output.txt
+    echo "and lines \$tumourordinals as 'tumour' samples." >> output.txt
     
     """
 }
@@ -119,7 +120,7 @@ process RCopyNum {
             path(mergedparent), 
             val(bamfilenames), 
             path(bams), 
-            val(dummy)
+            val(dummy),val(bins)
 
     output:
     tuple val(groupId), path("*.rds")
@@ -130,7 +131,7 @@ process RCopyNum {
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
-        --bin_in_kbases ${params.bin_in_kbases} \
+        --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}
     
@@ -141,7 +142,7 @@ process RCopyNum {
 process FilterBcfVcf {
     label 'Rfilter'  
     tag "${groupId}"   
-    publishDir "${params.outdir}/variants/SVs", mode: 'copy'
+    publishDir "${params.outdir}/variants/snvs_indels", mode: 'copy'
 
     input:
     tuple  val(groupId),val(refpath),val(prefix),
@@ -188,14 +189,14 @@ process MajorityFilter {
     """
 }
 
-process RPlot {
+process RPlotFull {
     label 'Rfilter'    
     tag "${groupId}"   
     
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),val(parentId),val(refpath),
+    tuple  val(groupId),val(parentId),
             path(rds)
 
     output:
@@ -203,11 +204,36 @@ process RPlot {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlots_mod.R \
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsFull.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --refDir ${refpath} \
-        --bin_in_kbases ${params.bin_in_kbases} 
+        --bin_in_kbases ${params.bin_CNfull}  \
+        --lowerbound_plot ${params.lowerbound_fullCN}  \
+        --upperbound_plot ${params.upperbound_fullCN}
+    """
+}
+process RPlotROI {
+    label 'Rfilter'    
+    tag "${groupId}"   
+    
+    publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
+    
+    input:
+    tuple  val(groupId),val(parentId),
+            path(rds)
+
+    output:
+    tuple val(groupId), path("*.pdf")
+
+    script:
+    """
+    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsROI.R \
+        --samplegroup ${groupId} \
+        --parentId ${parentId} \
+        --bin_in_kbases ${params.bin_CNroi} \
+        --chrOI ${params.chr_CNroi} \
+        --startROI ${params.start_CNroi} \
+        --endROI ${params.end_CNroi}
     """
 }
 
