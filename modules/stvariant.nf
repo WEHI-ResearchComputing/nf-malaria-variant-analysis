@@ -62,7 +62,7 @@ process InstallR{
     """
     echo \$CONDA_PREFIX
     echo "Installing R packages."
-    Rscript --vanilla ${projectDir}/bin/installR.R    
+    Rscript --vanilla ${projectDir}/Rtools/installR.R    
     """
 }
 
@@ -91,10 +91,10 @@ process SomaticFilter{
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
    
     echo "Start Somatic filter."
-    Rscript --vanilla ${projectDir}/bin/gridss_assets/gridss_somatic_filter.R \
+    Rscript --vanilla ${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R \
         --input ${groupId}.vcf \
         --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf.bgz \
-        --scriptdir ${projectDir}/bin/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
+        --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
     module load gzip
@@ -127,7 +127,7 @@ process RCopyNum {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumQDNAseqParents_mod.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumQDNAseqParents_mod.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
@@ -155,7 +155,7 @@ process FilterBcfVcf {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/filterBcfVcf_mod.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/filterBcfVcf_mod.R \
         --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
@@ -180,8 +180,8 @@ process MajorityFilter {
     tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/gridss_majorityfilt_mod.R \
-        --scriptdir ${projectDir}/bin/gridss_assets/ \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/gridss_majorityfilt_mod.R \
+        --scriptdir ${projectDir}/Rtools/gridss_assets/ \
         --samplegroup ${groupId} \
         --parentlist "${parentbamlist}" \
         --critsamplecount ${params.critsamplecount} 
@@ -204,7 +204,7 @@ process RPlotFull {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsFull.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumPlotsFull.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bin_in_kbases ${params.bin_CNfull}  \
@@ -227,7 +227,7 @@ process RPlotROI {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/bin/malDrugR/copynumPlotsROI.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumPlotsROI.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bin_in_kbases ${params.bin_CNroi} \
