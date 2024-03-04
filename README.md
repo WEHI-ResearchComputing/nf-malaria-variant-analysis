@@ -25,9 +25,22 @@ This will use all config parameters found in `nextflow.config`.
 
 It is a tab-delimited text file, with 5 columns. The columns are (`groupId`, `sampleId`, `fastqbase`, `ref`, `parentId`)
 
+Example of metadata file with 2 groups. Group L-076R has a single parent sample; group L-492M has 2 parent samples.
+
+groupId	|sampleId	|fastqbase	|ref	|parentId
+---     |---      |---       |--- |---
+L-076R	|L-076R1	|L-076_Revern_1_S11_L001	|3D7	|3D7D3B3
+L-076R	|L-076R2	|L-076_Revern_2_S12_L001	|3D7	|3D7D3B3
+L-492M	|L-492MIR2.1	|L-492_MIR_clone_2_1_S19_L001	|Dd2	|DD2s
+L-492M	|L-492MIR2.2	|L-492_MIR_clone_2_2_S20_L001	|Dd2	|DD2s
+3D7D3B3	|PF-3D7D3B3-uncl	|PF-3D7D3B3-uncloned_S1	|3D7		
+DD2s	|DD2_1	|DD21_S13_L001	|Dd2		|
+DD2s	|DD2_2	|DD22_S14_L001	|Dd2		|
+
 ### **Notes**
 * `sampleid` must contain `groupid`
 * If parent is not a sample add a line with no parentid
+* fastqbase is the sequence fastq filename up to _R[12]
 
 ## References
 <a id="1">[1]</a>  Li H. A statistical framework for SNP calling, mutation discovery, association mapping and population genetical parameter estimation from sequencing data. Bioinformatics (2011) 27(21) 2987-93 https://www.htslib.org/
