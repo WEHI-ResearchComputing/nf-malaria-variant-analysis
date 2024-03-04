@@ -1,5 +1,7 @@
 # nf-malaria-variant-analysis
 
+## Workflow Description 
+![Workflow diagram](images/MalariaVariantAnalysisWorkflow.png)
 ## To run on Milton
 ```
 ./runpipeline.sh
