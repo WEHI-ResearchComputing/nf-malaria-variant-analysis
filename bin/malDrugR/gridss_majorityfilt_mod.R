@@ -147,8 +147,10 @@ filtdf <- data.frame(
     chrom = seqnames(somBothFilt),
     start = start(somBothFilt), 
     end = end(somBothFilt),
-    as.data.frame(geno(somBothFilt)$AF) |> rename_with(~ paste0("AF_", .x)),
+    as.data.frame(geno(somBothFilt)$AF)|> unnest(cols = everything()) |>
+      rename_with(~ paste0("AF_", .x)),
     as.data.frame(geno(somBothFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
     )
 write_delim(filtdf,
-            file.path( paste0( argv$samplegroup, "_bothfilters.tsv") ))
+            file.path( paste0( argv$samplegroup, "_bothfilters.tsv") ),
+           delim = '\t')
