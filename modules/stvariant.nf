@@ -155,7 +155,7 @@ process FilterBcfVcf {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/filterBcfVcf_mod.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/filterBcfVcf.R \
         --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
@@ -180,7 +180,7 @@ process MajorityFilter {
     tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/gridss_majorityfilt_mod.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/gridss_majorityfilt.R \
         --scriptdir ${projectDir}/Rtools/gridss_assets/ \
         --samplegroup ${groupId} \
         --parentlist "${parentbamlist}" \
