@@ -33,7 +33,6 @@ process Index {
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
     tuple val(groupId), path("*_nodup*bai"), emit: bai
-    path("*.metrics")
 
     script:
     """
