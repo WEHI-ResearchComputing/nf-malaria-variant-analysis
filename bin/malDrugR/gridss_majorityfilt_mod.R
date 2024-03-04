@@ -151,6 +151,5 @@ filtdf <- data.frame(
       rename_with(~ paste0("AF_", .x)),
     as.data.frame(geno(somBothFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
     )
-write_delim(filtdf,
-            file.path( paste0( argv$samplegroup, "_bothfilters.tsv") ),
-           delim = '\t')
+write_tsv(filtdf,
+            file.path( paste0( argv$samplegroup, "_bothfilters.tsv") ))
