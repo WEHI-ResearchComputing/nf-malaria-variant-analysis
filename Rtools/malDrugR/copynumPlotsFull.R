@@ -1,4 +1,4 @@
-## Read stored copy numbers from copynumQDNAseqParents.R, and make plots
+## Read stored copy numbers from copynumQDNAseq.R, and make plots
 ## of nuclear genome
 
 suppressPackageStartupMessages(library(tidyverse))

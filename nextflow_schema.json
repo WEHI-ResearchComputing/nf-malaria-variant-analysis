@@ -145,7 +145,7 @@
         }
     ],
     "properties": {
-        "qualcrit": {
+        "BCFqualcrit": {
             "type": "integer",
             "default": 50
         },
@@ -155,7 +155,7 @@
         },
         "gridss_jar_path": {
             "type": "string",
-            "default": "/vast/projects/malaria/nf-malaria-variant-analysis/bin/gridss_assets/gridss-2.13.2-gridss-jar-with-dependencies.jar",
+            "default": "/vast/projects/malaria/nf-malaria-variant-analysis/Rtools/gridss_assets/gridss-2.13.2-gridss-jar-with-dependencies.jar",
             "hidden": true
         },
         "bin_CNfull": {
@@ -188,7 +188,7 @@
         }
     },
     "required": [
-        "qualcrit",
+        "BCFqualcrit",
         "critsamplecount"
     ]
 }

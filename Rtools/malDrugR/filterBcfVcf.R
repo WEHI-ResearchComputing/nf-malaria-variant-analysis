@@ -146,7 +146,7 @@ if (ref$strain == "3D7") { # haven't yet got this data for Dd2
 
 # ---------- Define filter functions -------------------------------------------
 #
-filt_vcf <- function(vcf, QUALcrit = 30,
+filt_vcf <- function(vcf, QUALcrit,
                      parents = "parent") {
   ## Discriminate between parent samples and samples of interest
   samplesOI <- setdiff(rownames(colData(vcf)), parents)
