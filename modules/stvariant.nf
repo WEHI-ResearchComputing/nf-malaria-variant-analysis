@@ -127,7 +127,7 @@ process RCopyNum {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumQDNAseqParents_mod.R \
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumQDNAseq.R \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \

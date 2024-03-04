@@ -1,4 +1,4 @@
-## Read stored copy numbers from copynumQDNAseqParents.R, and make plots
+## Read stored copy numbers from copynumQDNAseq.R, and make plots
 ## of specified region of interest
 
 suppressPackageStartupMessages(library(tidyverse))
@@ -9,7 +9,7 @@ suppressPackageStartupMessages(library(argparser))
 #### Read command-line arguments ####
 argp <- arg_parser(paste(
   "Read a scaled copy numbers data-frame file written by",
-  "copynumQDNAseqParents and plot scaled CN for region of interest"
+  "copynumQDNAseq and plot scaled CN for region of interest"
 ))
 argp <- add_argument(argp, "--samplegroup",
                      help = "Group name of related samples. Required"

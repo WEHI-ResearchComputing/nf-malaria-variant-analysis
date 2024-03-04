@@ -3,7 +3,7 @@
 ## then uses functions from QDNAseq to calculate read depths and copynumbers.
 ## A 'mappability file' is used for correcting the counts
 ##
-#Rscript ${projectDir}/bin/malDrugR/copynumQDNAseqParents.R \
+#Rscript ${projectDir}/bin/malDrugR/copynumQDNAseq.R \
     #    --samplegroup ${groupId} \
     #    --samplekeyfile ${samplekeyfile} \
     #    --groupkeyfile ${groupkeyfile} \
