@@ -159,7 +159,7 @@ process FilterBcfVcf {
         --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
-        --QUALcrit ${params.qualcrit} \
+        --QUALcrit ${params.BCFqualcrit} \
         --parentlist "${parentbamlist}"\
         --critsamplecount ${params.critsamplecount} 
         

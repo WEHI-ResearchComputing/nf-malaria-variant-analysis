@@ -145,7 +145,7 @@
         }
     ],
     "properties": {
-        "qualcrit": {
+        "BCFqualcrit": {
             "type": "integer",
             "default": 50
         },
@@ -188,7 +188,7 @@
         }
     },
     "required": [
-        "qualcrit",
+        "BCFqualcrit",
         "critsamplecount"
     ]
 }
