@@ -11,7 +11,7 @@ RUN conda install -c bioconda -c conda-forge --override-channels -y \
     samtools=1.16.1 \
     picard \
     fastqc=0.11.8-0 \
-    multiqc-1.12.0 \
+    multiqc=1.12.0 \
     r-base \
     r-devtools \
     r-tidyverse \
@@ -25,6 +25,7 @@ RUN conda install -c bioconda -c conda-forge --override-channels -y \
     r-ggplot2 \
     bioconda::bioconductor-biobase \
     bioconda::bioconductor-biocparallel \
+    bioconda::bioconductor-bsgenome \
     bioconda::bioconductor-qdnaseq \
     bioconda::bioconductor-variantannotation \
     bioconda::bioconductor-genomeinfodb \
