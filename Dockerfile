@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # get conda
 RUN apt-get update && apt-get install wget -y
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /opt/miniconda/sh && bash /opt/miniconda.sh -b -u -p /opt/miniconda3 && rm /opt/miniconda.sh
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /opt/miniconda.sh && bash /opt/miniconda.sh -b -u -p /opt/miniconda3 && rm /opt/miniconda.sh
 ENV PATH=/opt/miniconda3/bin:$PATH
 # install packages
 RUN conda install -c bioconda -c conda-forge --override-channels -y \
