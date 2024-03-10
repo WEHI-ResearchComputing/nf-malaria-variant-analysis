@@ -36,5 +36,5 @@ RUN conda install -c bioconda -c conda-forge --override-channels -y \
     bioconda::bioconductor-rtracklayer \
     gridss=2.13.2 && conda clean -ay
 
-COPY entrypoint.sh /usr/local/bin/entrypoints.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
