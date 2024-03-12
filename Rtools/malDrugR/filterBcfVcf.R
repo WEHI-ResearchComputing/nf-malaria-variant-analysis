@@ -318,7 +318,7 @@ countalleles <- function(bamfile, vcf) {
 SNPalleleCounts <- map(
   c(
     paste0(samplesOI, "_nodup.bam"),
-    paste0(argv$parentlist)
+    paste0(parentlist, "_nodup.bam")
   ),
   countalleles,
   vcf = snpCDS
