@@ -153,13 +153,11 @@ workflow {
             .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
     gridss_ch=Gridss(gridss_input_ch)
     
-    //dummy_ch=InstallR()
-    dummy_ch=Channel.of('1')
     input_ch.map{row -> tuple(row[4], row[0],row[7] )}
             .unique()
             .combine(parent_ch,by:0).map{row -> tuple(row[1],row[2],row[5])}
-            .join(bamlist_ch).join(gridss_ch.vcf).combine(dummy_ch)
-            .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf), val(dummy)
+            .join(bamlist_ch).join(gridss_ch.vcf)
+            .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf)
 
     sfilter_ch=SomaticFilter(sv_input_ch)
     //----------------------CopyNum--------------------------------------
@@ -174,7 +172,6 @@ workflow {
             })
             .combine(bam_ch.bamnodup,by:0)
             .groupTuple(by:[0,1,2,3,4,5])
-            .combine(dummy_ch)
             .ifEmpty {
                 error("""
                 Input to CopyNum Analysis is empty.
@@ -193,7 +190,6 @@ workflow {
             .join(bcf_ch, by:0)
             .join(bam_ch.bamnodup.groupTuple(),by:0)
             .join(bam_ch.bai.groupTuple(),by:0)
-            .combine(dummy_ch)
             .ifEmpty {
                 error("""
                 Input to filter is empty.
@@ -210,7 +206,6 @@ workflow {
             .combine(parent_ch.map{row->tuple(row[2],row[0])},by:1)
             .map{row->tuple(row[1],row[2])}
             .join(sfilter_ch.vcf)
-            .combine(dummy_ch)
             .set{mjf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
     MajorityFilter(mjf_ch)
     //----------------------Plot-----------------------------------------
