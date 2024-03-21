@@ -39,7 +39,7 @@ process Index {
     samtools view -b ${samfile}  |  \
     samtools sort -o ${sampleId}_s.bam -O bam -@ 4 -
     samtools index ${sampleId}_s.bam
-    MarkDuplicates I=${sampleId}_s.bam O=${sampleId}_nodup.bam M=${sampleId}_duplic.metrics \
+    picard MarkDuplicates I=${sampleId}_s.bam O=${sampleId}_nodup.bam M=${sampleId}_duplic.metrics \
                 REMOVE_DUPLICATES=TRUE
     samtools index ${sampleId}_nodup.bam
 

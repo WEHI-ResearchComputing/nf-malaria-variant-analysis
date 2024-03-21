@@ -31,17 +31,3 @@ library("BSgenome.Pfalciparum3D7.PlasmoDB.52",
   character.only = TRUE
 )
 print(eval(as.name("BSgenome.Pfalciparum3D7.PlasmoDB.52")))
-
-
-refDir <- file.path(PAPDIR,
-                    "plasmodium","vivaxP01","BSgenome.PvivaxP01.PlasmoDB.52")
-# Check if the package is already installed
-if (!requireNamespace("BSgenome.PvivaxP01.PlasmoDB.52", quietly = TRUE)) {
-  # If not installed, try to install it
-  install_local(path = refDir,dependencies = FALSE, INSTALL_opts = '--no-lock')
-}
-#Check
-library("BSgenome.PvivaxP01.PlasmoDB.52",
-  character.only = TRUE
-)
-print(eval(as.name("BSgenome.PvivaxP01.PlasmoDB.52")))

@@ -75,9 +75,8 @@ process SomaticFilter{
     input:
     tuple val(groupId),val(bsref),val(parentbamlist), 
             path(bamlist), 
-            path(vcf),
-            val(dummy)
-
+            path(vcf)
+            
     output:
     tuple val(groupId),path("${groupId}_high_and_imprecise.vcf"), emit:vcf
     path("output.txt")
@@ -85,7 +84,7 @@ process SomaticFilter{
     script:
     
     """
-    echo \$CONDA_PREFIX
+    
     parentcount=\$(echo ${parentbamlist} | awk -F' ' '{print NF}')
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
@@ -97,7 +96,7 @@ process SomaticFilter{
         --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
-    module load gzip
+    
     gzip -dc ${groupId}_high_and_low_confidence_somatic.vcf.bgz.bgz | awk  \
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
@@ -120,7 +119,7 @@ process RCopyNum {
             path(mergedparent), 
             val(bamfilenames), 
             path(bams), 
-            val(dummy),val(bins)
+            val(bins)
 
     output:
     tuple val(groupId), path("*.rds")
@@ -147,7 +146,7 @@ process FilterBcfVcf {
     input:
     tuple  val(groupId),val(refpath),val(prefix),
             path(parentbai),path(parentbam), val(parentbamlist), path(vcf), 
-            path(bams), path(bai), val(dummy)
+            path(bams), path(bai)
 
     output:
     path "*.tsv", emit: tsv 
@@ -173,7 +172,7 @@ process MajorityFilter {
 
 
     input:
-    tuple  val(groupId),val(parentbamlist), path(vcf), val(dummy)
+    tuple  val(groupId),val(parentbamlist), path(vcf)
     
     output:
     tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
