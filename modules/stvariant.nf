@@ -75,9 +75,8 @@ process SomaticFilter{
     input:
     tuple val(groupId),val(bsref),val(parentbamlist), 
             path(bamlist), 
-            path(vcf),
-            val(dummy)
-
+            path(vcf)
+            
     output:
     tuple val(groupId),path("${groupId}_high_and_imprecise.vcf"), emit:vcf
     path("output.txt")
@@ -120,7 +119,7 @@ process RCopyNum {
             path(mergedparent), 
             val(bamfilenames), 
             path(bams), 
-            val(dummy),val(bins)
+            val(bins)
 
     output:
     tuple val(groupId), path("*.rds")
@@ -147,7 +146,7 @@ process FilterBcfVcf {
     input:
     tuple  val(groupId),val(refpath),val(prefix),
             path(parentbai),path(parentbam), val(parentbamlist), path(vcf), 
-            path(bams), path(bai), val(dummy)
+            path(bams), path(bai)
 
     output:
     path "*.tsv", emit: tsv 
@@ -173,7 +172,7 @@ process MajorityFilter {
 
 
     input:
-    tuple  val(groupId),val(parentbamlist), path(vcf), val(dummy)
+    tuple  val(groupId),val(parentbamlist), path(vcf)
     
     output:
     tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
