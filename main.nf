@@ -153,7 +153,8 @@ workflow {
             .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
     gridss_ch=Gridss(gridss_input_ch)
     
-    dummy_ch=InstallR()
+    //dummy_ch=InstallR()
+    dummy_ch=Channel.of('1')
     input_ch.map{row -> tuple(row[4], row[0],row[7] )}
             .unique()
             .combine(parent_ch,by:0).map{row -> tuple(row[1],row[2],row[5])}

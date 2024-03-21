@@ -85,7 +85,7 @@ process SomaticFilter{
     script:
     
     """
-    echo \$CONDA_PREFIX
+    
     parentcount=\$(echo ${parentbamlist} | awk -F' ' '{print NF}')
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
@@ -97,7 +97,7 @@ process SomaticFilter{
         --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
-    module load gzip
+    
     gzip -dc ${groupId}_high_and_low_confidence_somatic.vcf.bgz.bgz | awk  \
     \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
     ${groupId}_high_and_imprecise.vcf
