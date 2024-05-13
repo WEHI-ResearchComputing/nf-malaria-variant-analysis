@@ -56,8 +56,8 @@ refDir <- argv$refpath
 varDir <- "./"
 
 pfCurrRefs <- data.frame(
-  strain = c("3D7", "Dd2"),
-  version = c("52", "57")
+  strain = c("3D7", "Dd2", "Supp"),
+  version = c("52", "57", "52")
 )
 ref <- filter(pfCurrRefs, strain == argv$refstrain)
 
@@ -66,6 +66,14 @@ file.gff <- file.path(
   refDir,
   paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
 )
+if (argv$refstrain == "Supp"){
+  file.gff <- file.path(
+    refDir,
+    paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain,
+           "_supplemented", ".gff")
+  )
+  
+}
 pf_features <- tryCatch(
   readGff3(file.gff, quiet = TRUE),
   error = function(e) {

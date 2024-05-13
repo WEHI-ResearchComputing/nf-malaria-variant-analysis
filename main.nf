@@ -68,11 +68,17 @@ workflow {
             refpath=params.refDd2_path
             bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
         }
+        else if (row.ref =="Supp") {
+            ref=params.refSupp_path+"/PlasmoDB-52_Pfalciparum3D7_Genome_supplemented"
+            refpath=params.refSupp_path
+            bsref="BSgenome.falciparumNF54iGP"
+        }
         return tuple(row.groupId,row.sampleId,row.fastqbase,row.ref, row.parentId,ref,refpath,bsref)
     }
     .set{input_ch} // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
                    // 3->ref_prefix, 4->parentId, 5->ref (path+name)
                    // 6->refpath , 7-> bsref
+
     //----------------Alignment-----------------------------------------
     bamlist_ch=WriteBamLists(Channel.fromPath(params.input_file,checkIfExists:true))
     bamlist_ch=bamlist_ch.flatten()
@@ -88,11 +94,10 @@ workflow {
                     """)
             }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])}
             .set {fastq_input_channel}
-    
+
     input_ch.map{row -> tuple(row[2],row[1],row[0],row[5])}
                 .join(fastq_input_channel,by:0)
                 .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref),path(fastqs)
-   
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
     //----------------Merge&List---------------------------------------
