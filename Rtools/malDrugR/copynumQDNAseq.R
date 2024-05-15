@@ -109,8 +109,6 @@ parentcountsn <- file.path(
 
 if (file.exists(parentcountsn)) {
   counts_parents <- readRDS(parentcountsn)
-} else if (file.exists(file.path(parentcountsn))) {
-  counts_parents <- readRDS(file.path(parentcountsn))
 } else {
   if (!exists(deparse(substitute(pfBins)))) {
     pfBins <- makePfBins(argv$bin_in_kbases)
