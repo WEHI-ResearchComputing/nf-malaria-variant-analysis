@@ -95,7 +95,10 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
 #### Zoom to regions of interest ####
 panelplot <- plotZoomedROI(
   scaled_df,
-  chro = argv$chrOI,
+  chro = ifelse( argv$chrOI %in% seq(1,9) |> as.character(),
+                 ## check for single digit in chrom name
+                 paste0("0", argv$chrOI),
+                argv$chrOI),
   startkb = argv$startROI,
   endkb = argv$endROI
 ) +
