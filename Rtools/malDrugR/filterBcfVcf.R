@@ -347,10 +347,10 @@ txdb <- tryCatch(
   }
 )
 if (argv$refstrain == "Supp") {
-  library("BSgenome.falciparumNF54iGP",
+  library("BSgenome.PfalciparumNF54iGP",
           character.only = TRUE
   )
-  pfg <- get("BSgenome.falciparumNF54iGP")
+  pfg <- get("BSgenome.PfalciparumNF54iGP")
 } else {
   library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
           character.only = TRUE

@@ -37,12 +37,12 @@ refDir <- file.path(PAPDIR, "..",
                     "malaria", "cowman_lab", "drug_resistance",
                     "iGP3_Paola2024", "supplementedRef52" )
 # Check if the package is already installed
-if (!requireNamespace("BSgenome.falciparumNF54iGP", quietly = TRUE)) {
+if (!requireNamespace("BSgenome.PfalciparumNF54iGP", quietly = TRUE)) {
   # If not installed, try to install it
   install_local(path = refDir,dependencies = FALSE, INSTALL_opts = '--no-lock')
 }
 #Check
-library("BSgenome.falciparumNF54iGP",
+library("BSgenome.PfalciparumNF54iGP",
         character.only = TRUE
 )
-print(eval(as.name("BSgenome.falciparumNF54iGP")))
+print(eval(as.name("BSgenome.PfalciparumNF54iGP")))

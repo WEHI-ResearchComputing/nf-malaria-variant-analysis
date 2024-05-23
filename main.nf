@@ -71,7 +71,7 @@ workflow {
         else if (row.ref =="Supp") {
             ref=params.refSupp_path+"/PlasmoDB-52_Pfalciparum3D7_Genome_supplemented"
             refpath=params.refSupp_path
-            bsref="BSgenome.falciparumNF54iGP"
+            bsref="BSgenome.PfalciparumNF54iGP"
         }
         return tuple(row.groupId,row.sampleId,row.fastqbase,row.ref, row.parentId,ref,refpath,bsref)
     }
