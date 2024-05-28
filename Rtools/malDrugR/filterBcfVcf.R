@@ -56,16 +56,22 @@ refDir <- argv$refpath
 varDir <- "./"
 
 pfCurrRefs <- data.frame(
-  strain = c("3D7", "Dd2"),
-  version = c("52", "57")
+  strain = c("3D7", "Dd2", "Supp"),
+  version = c("52", "57", "52")
 )
 ref <- filter(pfCurrRefs, strain == argv$refstrain)
+if (ref$strain == "Supp"){
+  ref$strain <- "3D7"
+  ref$supp <- "_supplemented"
+  } else ref$supp <- ""
 
 # ---------- Read genomic features --------------------------------------------
 file.gff <- file.path(
   refDir,
-  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ".gff")
+  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, ref$supp,
+         ".gff")
 )
+
 pf_features <- tryCatch(
   readGff3(file.gff, quiet = TRUE),
   error = function(e) {
@@ -91,7 +97,7 @@ CDSnoVar <- pf_featuresNovar[annotation(pf_featuresNovar)$type == "CDS", ]
 file.chrinfo <- file.path(
   refDir, paste0(
     "PlasmoDB-", ref$version, "_Pfalciparum", ref$strain,
-    "_Genome.fasta.fai"
+    "_Genome",  ref$supp, ".fasta.fai"
   )
 )
 chrinfo <-
@@ -340,10 +346,17 @@ txdb <- tryCatch(
     stop(paste(e, "Filepath:", transcriptdb))
   }
 )
-library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
-  character.only = TRUE
-)
-pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
+if (argv$refstrain == "Supp") {
+  library("BSgenome.PfalciparumNF54iGP",
+          character.only = TRUE
+  )
+  pfg <- get("BSgenome.PfalciparumNF54iGP")
+} else {
+  library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
+          character.only = TRUE
+  )
+  pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
+}
 
 #### AA prediction for SNPs in CDS
 AApred <- predictCoding(query = snpCDS, subject = txdb, seqSource = pfg)
