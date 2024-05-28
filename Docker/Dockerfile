@@ -1,14 +1,5 @@
 FROM continuumio/miniconda3:24.3.0-0
 
-# install packages
-RUN conda update --all -c conda-forge --override-channels && \
-    conda install -c bioconda -c conda-forge --override-channels -y \
-    bcftools=1.13 \
-    bwa=0.7.17 \
-    samtools=1.16.1 \
-    fastqc=0.11.8-0 \
-    multiqc=1.12.0 && conda clean -ay
-
 # install R4.4 from r repos since conda doesn't yet have 4.4
 RUN apt-get update && apt-get install gpg -y
 RUN echo "deb http://cloud.r-project.org/bin/linux/debian bullseye-cran40/" >> /etc/apt/sources.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B8F25A8A73EACF41 && apt-get update && apt-get install r-base-dev -y && apt-get clean
@@ -33,3 +24,13 @@ RUN wget https://github.com/PapenfussLab/gridss/releases/download/v2.13.2/gridss
 RUN wget https://github.com/PapenfussLab/gridss/releases/download/v2.13.2/gridss-2.13.2-gridss-jar-with-dependencies.jar -O /opt/gridss/gridss.jar
 ENV PATH="/opt/gridss:$PATH"
 ENV GRIDSS_JAR=/opt/gridss/gridss.jar
+
+
+# install remaining packages with conda
+RUN conda update --all -c conda-forge --override-channels && \
+    conda install -c bioconda -c conda-forge --override-channels -y \
+    bcftools=1.13 \
+    bwa=0.7.17 \
+    samtools=1.16.1 \
+    fastqc=0.11.8-0 \
+    multiqc=1.12.0 && conda clean -ay
