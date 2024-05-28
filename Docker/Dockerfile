@@ -9,7 +9,7 @@ RUN conda update --all -c conda-forge --override-channels && \
     picard=2.26.11 \
     fastqc=0.11.8-0 \
     multiqc=1.12.0 \
-    r-base=4.3.2 \
+    r-base=4.4.0 \
     r-devtools \
     r-tidyverse \
     r-argparser \
