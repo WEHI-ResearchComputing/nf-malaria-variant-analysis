@@ -35,4 +35,7 @@ RUN conda update --all -c conda-forge --override-channels && \
 
 COPY BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz /tmp/BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz
 COPY BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz /tmp/BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz
-RUN R CMD INSTALL /tmp/BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz && R CMD INSTALL /tmp/BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz
+COPY BSgenome.PfalciparumNF54iGP.tar.gz /tmp/BSgenome.PfalciparumNF54iGP.tar.gz
+RUN R CMD INSTALL /tmp/BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz &&  \
+    R CMD INSTALL /tmp/BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz &&  \
+    R CMD INSTALL /tmp/BSgenome.PfalciparumNF54iGP.tar.gz
