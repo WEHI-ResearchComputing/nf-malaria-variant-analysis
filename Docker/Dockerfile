@@ -8,7 +8,7 @@ RUN echo "deb http://cloud.r-project.org/bin/linux/debian bullseye-cran40/" >> /
 RUN apt-get install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcurl4-openssl-dev libssl-dev -y && apt-get clean
 # install R + bioconductor packages
 RUN MAKE="make -j" Rscript -e 'install.packages(c("BiocManager", "devtools", "tidyverse", "argparser", "stringr", "readr", "scales", "gridExtra", "stringdist", "R6", "ggplot2"), repos="https://cloud.r-project.org/")'
-RUN MAKE="make -j" Rscript -e 'BiocManager::install(c("biobase", "biocparallel", "QDAseq", "VariantAnnotation", "GenomeInfoDb", "SparseArray", "GenomicAlignments", "GenomeIntervals", "StructuralVariantAnnotation", "rtracklayer")); devtools::install_github("Bioconductor/BSgenome@e89b08b590039643f8fe9f030c1948233de4f50f")'
+RUN MAKE="make -j" Rscript -e 'BiocManager::install(c("biobase", "biocparallel", "QDNAseq", "VariantAnnotation", "GenomeInfoDb", "SparseArray", "GenomicAlignments", "GenomeIntervals", "StructuralVariantAnnotation", "rtracklayer")); devtools::install_github("Bioconductor/BSgenome@e89b08b590039643f8fe9f030c1948233de4f50f")'
 
 COPY BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz /tmp/BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz
 COPY BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz /tmp/BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz
