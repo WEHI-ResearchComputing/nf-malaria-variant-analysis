@@ -123,6 +123,10 @@
                 "refDd2_path": {
                     "type": "string",
                     "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/reference_genomes/plasmodium/PlasmoDB-57_PfalciparumDd2"
+                },
+                "refSupp_path": {
+                   "type": "string",
+                "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/malaria/cowman_lab/drug_resistance/iGP3_Paola2024/supplementedRef52"
                 }
             }
         }
