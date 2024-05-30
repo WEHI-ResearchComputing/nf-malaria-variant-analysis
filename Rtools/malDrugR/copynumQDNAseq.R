@@ -69,17 +69,20 @@ makePfBins <- function(bin_in_kbases) {
     pfBins <- createBins(pfg, as.numeric(bin_in_kbases)
     )
     mapityfile <- file.path(
-      refDir, "mappability",
-      "kmer30_err2.bw"
+      refDir, "mappability", "kmer30_err2.bw"
     )
     if( !file.exists(mapityfile) ){
       stop(paste("Mappability file", mapityfile, "not found"))}
+    ### Untested! bigWig executables require module ucsc-tools
+    remotes::install_github("WEHI-ResearchComputing/EnvironmentModules")
+    library(EnvironmentModules)
+    module_load("ucsc-tools/331")
     bigWigpath <- file.path(
       "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
       "bigWigAverageOverBed"
     )
     if( !file.exists(bigWigpath) ){
-      stop(paste(bigWigpath, "not found"))}
+      stop(paste(bigWigpath, "not found."))}
     pfBins$mappability <- calculateMappability(
       pfBins,
       bigWigFile = mapityfile,
