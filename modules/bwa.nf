@@ -22,7 +22,7 @@ process Bwa {
 }
 
 process Index {
-    label 'BWAAlign'
+    label 'IndexDedup'
     tag "${sampleId}"
     publishDir "${params.outdir}/align", mode: 'copy'
     
