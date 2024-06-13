@@ -78,7 +78,7 @@ process SomaticFilter{
             path(vcf)
             
     output:
-    tuple val(groupId),path("${groupId}_high_and_imprecise.vcf"), emit:vcf
+    tuple val(groupId),path("${groupId}_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
     path("output.txt")
     
     script:
@@ -97,10 +97,6 @@ process SomaticFilter{
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
     
-    gzip -dc ${groupId}_high_and_low_confidence_somatic.vcf.bgz.bgz | awk  \
-    \'/^#/ || \$7 ~ /^PASS\$/ || \$7 ~ /^imprecise\$/' >  \
-    ${groupId}_high_and_imprecise.vcf
-
     echo "GRIDSS somatic filter used 1st line of ${groupId}_bams.txt as Normal sample" > output.txt
     echo "and lines \$tumourordinals as 'tumour' samples." >> output.txt
     
