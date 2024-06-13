@@ -161,7 +161,7 @@ process FilterBcfVcf {
     """
 }
 
-process MajorityFilter {
+process FilterGridssSV {
     label 'Rfilter'    
     tag "${groupId}"   
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'

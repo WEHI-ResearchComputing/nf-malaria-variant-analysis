@@ -23,7 +23,7 @@ include { SomaticFilter } from './modules/stvariant.nf'
 include { RCopyNum } from './modules/stvariant.nf'
 include { InstallR } from './modules/stvariant.nf'
 include { FilterBcfVcf } from './modules/stvariant.nf'
-include { MajorityFilter } from './modules/stvariant.nf'
+include { FilterGridssSV } from './modules/stvariant.nf'
 include { RPlotFull } from './modules/stvariant.nf'
 include { RPlotROI } from './modules/stvariant.nf'
 
@@ -205,14 +205,14 @@ workflow {
                             // path(vcf), 
                             // path(bams), path(bai), val(dummy)
     FilterBcfVcf(fbcf_ch )            
-    //----------------------Majority filter----------------------------------- 
+    //----------------------GRIDSS filter----------------------------------- 
     input_ch.map{row -> tuple(row[0],row[4])}
             .unique()
             .combine(parent_ch.map{row->tuple(row[2],row[0])},by:1)
             .map{row->tuple(row[1],row[2])}
             .join(sfilter_ch.vcf)
-            .set{mjf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
-    MajorityFilter(mjf_ch)
+            .set{gf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
+    FilterGridssSV(gf_ch)
     //----------------------Plot-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
     input_ch.map{row -> tuple(row[0],row[4])}
