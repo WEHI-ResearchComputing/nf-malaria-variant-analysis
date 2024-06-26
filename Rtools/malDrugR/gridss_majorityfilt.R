@@ -146,9 +146,6 @@ majsom <- passvcf[
       }
     )
 ]
-writeVcf(majsom, file.path(
-  paste0(argv$samplegroup, "_all_majsom.vcf")
-))
 
 somMinAF <- passvcf[
   apply(
@@ -159,30 +156,26 @@ somMinAF <- passvcf[
     }
   )
 ]
-writeVcf(somMinAF, file.path(
-  paste0(argv$samplegroup, "_all_somMinAF.vcf")
-))
 
-## Apply both QUAL and AF filters
-somBothFilt <- majsom[
-  apply(
-    geno(majsom)$AF, 1,
-    function(af) {
-      sum(af[samplesOI] %>% unlist() > AFcrit) >= critSamplesSom &
-        max(af[samplesOI] %>% unlist()) > 2 * max(unlist(af[parentlist]))
-    }
-  )
-]
+#### Save the union of the 2 filters as vcf and summary table ####
+somEitherFilt <- rbind(
+    majsom, somMinAF
+) |> unique() |> sort()
+writeVcf(somEitherFilt, 
+         paste0(argv$samplegroup, "_somatic_by_QUALorAF.vcf"))
 
 filtdf <- data.frame(
-  chrom = seqnames(somBothFilt),
-  start = start(somBothFilt),
-  end = end(somBothFilt),
-  as.data.frame(geno(somBothFilt)$AF) |> unnest(cols = everything()) |>
+  gridssID = rownames(somEitherFilt),
+  chrom = seqnames(somEitherFilt),
+  pos = start(somEitherFilt),
+  REF = ref(somEitherFilt) |> unlist(),
+  ALT = alt(somEitherFilt) |> unlist() |> str_trunc(width = 24, side = "right"),
+  as.data.frame(geno(somEitherFilt)$AF) |> unnest(cols = everything()) |>
     rename_with(~ paste0("AF_", .x)),
-  as.data.frame(geno(somBothFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
-)
+  as.data.frame(geno(somEitherFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
+) |>
+    arrange(gridssID)
 write_tsv(
   filtdf,
-  file.path(paste0(argv$samplegroup, "_bothfilters.tsv"))
+  file.path(paste0(argv$samplegroup, "_somatic_by_QUALorAF.tsv"))
 )

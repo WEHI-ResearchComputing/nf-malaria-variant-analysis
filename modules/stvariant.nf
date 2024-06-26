@@ -89,17 +89,13 @@ process SomaticFilter{
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
    
-    echo "Start Somatic filter."
     Rscript --vanilla ${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R \
         --input ${groupId}.vcf \
-        --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf.bgz \
+        --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf \
         --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
-    
-    echo "GRIDSS somatic filter used 1st line of ${groupId}_bams.txt as Normal sample" > output.txt
-    echo "and lines \$tumourordinals as 'tumour' samples." >> output.txt
-    
+        
     """
 }
 process RCopyNum {
@@ -171,7 +167,7 @@ process FilterGridssSV {
     tuple  val(groupId),val(parentbamlist), path(vcf)
     
     output:
-    tuple val(groupId), path("${groupId}_all_*.vcf"), emit: vcf
+    tuple val(groupId), path("${groupId}_*.vcf"), emit: vcf
     tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
     script:
     """
