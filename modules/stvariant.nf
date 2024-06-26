@@ -79,7 +79,6 @@ process SomaticFilter{
             
     output:
     tuple val(groupId),path("${groupId}_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
-    path("output.txt")
     
     script:
     
