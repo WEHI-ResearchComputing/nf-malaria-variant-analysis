@@ -1,5 +1,0 @@
-reports:
-  "**/multiqc_report.html":
-    display : "MultiQC report"
-  "**/*.pdf":
-    display: "Plots"
