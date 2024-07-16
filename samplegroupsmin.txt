@@ -1,0 +1,3 @@
+groupId	sampleId	fastqbase	ref	parentId
+L466r	L466r_1B	466r-1B_S22_L001	3D7	3D7D3B3
+L466r	L466r_2B	466r-2B_S24_L001	3D7	3D7D3B3
