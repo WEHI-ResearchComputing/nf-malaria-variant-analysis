@@ -321,94 +321,101 @@ countalleles <- function(bamfile, vcf) {
   }) |> list_rbind()
 }
 
-SNPalleleCounts <- map(
-  c(
-    paste0(samplesOI, "_nodup.bam"),
-    paste0(parentlist, "_nodup.bam")
-  ),
-  countalleles,
-  vcf = snpCDS
-) |>
-  list_rbind()
-
-
-SNPalleleCounts <- arrange(SNPalleleCounts, variant)
-
-#### Annotate SNPs ####
-#### Load genome and transcript db
-transcriptdb <- file.path(
-  refDir,
-  paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
-)
-txdb <- tryCatch(
-  txdb <- loadDb(transcriptdb),
-  error = function(e) {
-    stop(paste(e, "Filepath:", transcriptdb))
-  }
-)
-if (argv$refstrain == "Supp") {
-  library("BSgenome.PfalciparumNF54iGP",
-          character.only = TRUE
-  )
-  pfg <- get("BSgenome.PfalciparumNF54iGP")
-} else {
-  library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
-          character.only = TRUE
-  )
-  pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
-}
-
-#### AA prediction for SNPs in CDS
-AApred <- predictCoding(query = snpCDS, subject = txdb, seqSource = pfg)
-
-#### SNPs in same codon
-mcols(AApred)$warning <- NA
-if (paste(AApred$CDSID, AApred$PROTEINLOC) |> unlist() |> n_distinct() <
-  length(AApred)
-) {
-  multihit <- which(mcols(AApred) |>
-    as.data.frame() |>
-    add_count(CDSID, PROTEINLOC) |>
-    dplyr::select(n) > 1)
-  mcols(AApred[multihit])$warning <- "multihit on codon"
-}
-
-#### Remove synonymous ####
-AApred <- AApred[which(mcols(AApred)$CONSEQUENCE != "synonymous" |
-  !is.na(mcols(AApred)$warning))]
-nonsynSNP <-
-  cbind(
-    as.data.frame(AApred) |> dplyr::select(-ALT),
-    data.frame(
-      SNP = names(AApred),
-      ALT = as.character(unlist(AApred$ALT)),
-      AAchanges = with(
-        AApred,
-        paste0(REFAA, PROTEINLOC, VARAA)
-      )
+if (nrow(snpCDS) > 0){
+    SNPalleleCounts <- map(
+        c(
+            paste0(samplesOI, "_nodup.bam"),
+            paste0(parentlist, "_nodup.bam")
+        ),
+        countalleles,
+        vcf = snpCDS
+    ) |>
+        list_rbind()
+    
+    if (nrow(SNPalleleCounts) > 1) {
+        SNPalleleCounts <- arrange(SNPalleleCounts, variant)
+    }
+    #### Annotate SNPs ####
+    #### Load genome and transcript db
+    transcriptdb <- file.path(
+        refDir,
+        paste0("PlasmoDB-", ref$version, "_Pfalciparum", ref$strain, "_txdb.sql")
     )
-  ) |> dplyr::select(SNP, seqnames,
-    pos = start, strand, REF, ALT, QUAL,
-    AAchanges, REFCODON, VARCODON, warning
-  )
-
-if (all(is.na(nonsynSNP$warning))) {
-  nonsynSNP <- dplyr::select(nonsynSNP, !c(REFCODON, VARCODON, warning))
+    txdb <- tryCatch(
+        txdb <- loadDb(transcriptdb),
+        error = function(e) {
+            stop(paste(e, "Filepath:", transcriptdb))
+        }
+    )
+    if (argv$refstrain == "Supp") {
+        library("BSgenome.PfalciparumNF54iGP",
+                character.only = TRUE
+        )
+        pfg <- get("BSgenome.PfalciparumNF54iGP")
+    } else {
+        library(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version),
+                character.only = TRUE
+        )
+        pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
+    }
+    
+    #### AA prediction for SNPs in CDS
+    AApred <- predictCoding(query = snpCDS, subject = txdb, seqSource = pfg)
+    
+    #### SNPs in same codon
+    mcols(AApred)$warning <- NA
+    if (paste(AApred$CDSID, AApred$PROTEINLOC) |> unlist() |> n_distinct() <
+        length(AApred)
+    ) {
+        multihit <- which(mcols(AApred) |>
+                              as.data.frame() |>
+                              add_count(CDSID, PROTEINLOC) |>
+                              dplyr::select(n) > 1)
+        mcols(AApred[multihit])$warning <- "multihit on codon"
+    }
+    
+    #### Remove synonymous ####
+    AApred <- AApred[which(mcols(AApred)$CONSEQUENCE != "synonymous" |
+                               !is.na(mcols(AApred)$warning))]
+    nonsynSNP <-
+        cbind(
+            as.data.frame(AApred) |> dplyr::select(-ALT),
+            data.frame(
+                SNP = names(AApred),
+                ALT = as.character(unlist(AApred$ALT)),
+                AAchanges = with(
+                    AApred,
+                    paste0(REFAA, PROTEINLOC, VARAA)
+                )
+            )
+        ) |> dplyr::select(SNP, seqnames,
+                           pos = start, strand, REF, ALT, QUAL,
+                           AAchanges, REFCODON, VARCODON, warning
+        )
+    
+    if (all(is.na(nonsynSNP$warning))) {
+        nonsynSNP <- dplyr::select(nonsynSNP, !c(REFCODON, VARCODON, warning))
+    }
+    SNPdetails <- left_join(
+        nonsynSNP,
+        SNPalleleCounts |> mutate(
+            AltFrac = paste0(AltCount, "/", TotCount),
+            TotCount = NULL, RefCount = NULL, AltCount = NULL
+        ) |>
+            pivot_wider(
+                names_from = c(SampleName),
+                values_from = c(AltFrac),
+                names_prefix = "AF_"
+            ),
+        by = join_by("SNP" == "variant")
+    ) |>
+        dplyr::select(!SNP)
+} else {
+    SNPdetails <- data.frame(
+        seqnames = factor(), Gene = character(), pos = integer()
+        )
+    AApred <- GRanges()
 }
-SNPdetails <- left_join(
-  nonsynSNP,
-  SNPalleleCounts |> mutate(
-    AltFrac = paste0(AltCount, "/", TotCount),
-    TotCount = NULL, RefCount = NULL, AltCount = NULL
-  ) |>
-    pivot_wider(
-      names_from = c(SampleName),
-      values_from = c(AltFrac),
-      names_prefix = "AF_"
-    ),
-  by = join_by("SNP" == "variant")
-) |>
-  dplyr::select(!SNP)
 
 #### Get gene details for indels and non-synonymous SNPs ####
 eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
@@ -491,15 +498,17 @@ geneDetail <- map(baseIDEvents, function(ID) {
   )
 }) |>
   list_rbind()
-snps.Feat.df <- cbind(snps.Feat.df, geneDetail) |>
-  mutate(
-    Gene = case_when(
-      is.na(GeneName) ~ Description |>
-        str_replace_all(pattern = "\\+", replacement = " "),
-      TRUE ~ GeneName
-    ),
-    GeneName = NULL, Description = NULL, ID = NULL
-  )
+if (nrow(geneDetail) > 0){
+    snps.Feat.df <- cbind(snps.Feat.df, geneDetail) |>
+        mutate(
+            Gene = case_when(
+                is.na(GeneName) ~ Description |>
+                    str_replace_all(pattern = "\\+", replacement = " "),
+                TRUE ~ GeneName
+            ),
+            GeneName = NULL, Description = NULL, ID = NULL
+        )
+}
 
 SNPdetails <- left_join(
   SNPdetails, snps.Feat.df
@@ -524,7 +533,7 @@ events.stats.df <- data.frame(
 write_tsv(
   events.stats.df,
   file.path(
-    varDir, paste0(
+      varDir, paste0(
       argv$samplegroup, critSamplesSom,
       "plusstats.Qcrit", argv$QUALcrit, ".tsv"
     )
