@@ -1,5 +1,4 @@
 
-
 process Bcf{
     label 'Bcftools'
     tag "${groupId}"   
@@ -17,7 +16,7 @@ process Bcf{
     script:
     """
     bcftools mpileup -Ou --max-depth 800 --threads ${task.cpus}  \
-    -f ${ref}.fasta  \
+    -a AD,DP -f ${ref}.fasta  \
     --bam-list ${bamlist}  | \
     bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ov  \
     --output "${groupId}.vcf" -
