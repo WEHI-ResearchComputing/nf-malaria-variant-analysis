@@ -325,7 +325,65 @@ countalleles <- function(bamfile, vcf) {
   }) |> list_rbind()
 }
 
+#### Get Alt allele fractions for vcf records from added geno fields ####
+#### Report AF for 1st ALT not in reference sample
+altAF <- function(vcf) {
+  if (!("AD" %in% rownames(geno(header(vcf)))
+        & "DP" %in% rownames(geno(header(vcf)))
+  ) ) {
+      print(paste0("AD &/or DP field not in vcf ",
+           argv$samplegroup, ".vcf, preventing use of "
+           , deparse(sys.call())
+           ) )
+      return(data.frame())
+  }
+  GTparent <- geno(vcf)$GT[, parentlist] |>
+    as.numeric() |>
+    pmax()
+  names(GTparent) <- names(geno(vcf)$GT[, parentlist])
+  alldepths <- as.data.frame(geno(vcf)$AD) |>
+    cbind(GTparent) |>
+    rownames_to_column(var = "variant") |>
+    pivot_longer(
+      cols = !c("variant", "GTparent"),
+      names_to = "SampleName",
+      values_to = "AD"
+    )
+  alldepths$NewAltDepth <-
+    # Plus 2 because GT is 0-based; GTparent+1 is index of highest parent GT
+    apply(alldepths, 1, function(row) unlist(row$AD)[row$GTparent + 2])
+
+  newAF <- left_join(
+    alldepths,
+    as.data.frame(geno(vcf)$DP) |>
+      rownames_to_column(var = "variant") |>
+      pivot_longer(cols = !"variant", names_to = "SampleName", values_to = "DP"),
+  ) |> mutate(
+    NewAltFrac = paste0(NewAltDepth, "/", DP)
+  )
+  ## Add ALT DNA, clean up and pivot wider for report
+  alts <- as.data.frame(alt(vcf)) |>
+    group_by(group) |>
+    summarize(altDNA = list(value))
+  alts$variant <- names(vcf)
+  alts$GTparent <- GTparent
+  alts$AF_DNA <-
+    apply(alts, 1, function(row) unlist(row$altDNA)[row$GTparent + 1])
+
+  return(
+    newAF |>
+      dplyr::select(-AD, -NewAltDepth, -DP) |>
+      pivot_wider(names_from = SampleName, values_from = NewAltFrac) |>
+      left_join(alts) |>
+      dplyr::select(
+        variant, GTparent, AF_DNA, all_of(c(parentlist, samplesOI))
+      )
+  )
+}
+
+
 if (nrow(snpCDS) > 0) {
+  #### 1. SNP allele counts from bam files
   SNPalleleCounts <- map(
     c(
       paste0(samplesOI, "_nodup.bam"),
@@ -339,6 +397,9 @@ if (nrow(snpCDS) > 0) {
   if (nrow(SNPalleleCounts) > 1) {
     SNPalleleCounts <- arrange(SNPalleleCounts, variant)
   }
+  #### 2. SNP allele counts from vcf geno fields
+  SNPaltcounts <- altAF(snpCDS)
+
   #### Annotate SNPs ####
   #### Load genome and transcript db
   transcriptdb <- file.path(
@@ -433,17 +494,9 @@ if (nrow(indelGene) > 0) {
     )
   ]
   #### Get Alt allele fractions for indels from added geno fields ####
-  indels.AF <- left_join(
-    as.data.frame(geno(indelGene)$AD) |>
-      rownames_to_column(var = "variant") |>
-      pivot_longer(cols = !"variant", names_to = "SampleName", values_to = "AD"),
-    as.data.frame(geno(indelGene)$AF) |>
-      rownames_to_column(var = "variant") |>
-      pivot_longer(cols = !"variant", names_to = "SampleName", values_to = "DP"),
-  ) |> mutate(
-    AltFrac = paste0(AD, "/", DP),
-    AD = NULL, DP = NULL
-  )
+  #### Report AF for 1st ALT not in reference sample.
+  #### Function defined above in SNP allele counts
+  indels.AF <- altAF(indelGene)
 
   #### Get gene details for indels ####
   indels.Feat.df <- data.frame(
