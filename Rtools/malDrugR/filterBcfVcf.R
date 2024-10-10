@@ -370,7 +370,8 @@ altAF <- function(vcf) {
                   names_prefix = "AF_") |>
       left_join(alts) |>
       dplyr::select(
-        variant, GTparent, AF_DNA, all_of(c(parentlist, samplesOI))
+        variant, GTparent, AF_DNA, 
+        all_of(paste0("AF_", c(parentlist, samplesOI)))
       )
   )
 }
