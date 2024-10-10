@@ -366,7 +366,8 @@ altAF <- function(vcf) {
   return(
     newAF |>
       dplyr::select(-AD, -NewAltDepth, -DP) |>
-      pivot_wider(names_from = SampleName, values_from = NewAltFrac) |>
+      pivot_wider(names_from = SampleName, values_from = NewAltFrac,
+                  names_prefix = "AF_") |>
       left_join(alts) |>
       dplyr::select(
         variant, GTparent, AF_DNA, all_of(c(parentlist, samplesOI))
@@ -390,6 +391,16 @@ if (nrow(snpCDS) > 0) {
       vcf = snpCDS
     ) |>
       list_rbind()
+    SNPalleleCounts |> mutate(
+        SNPalleleCounts,
+        AltFrac = paste0(AltCount, "/", TotCount),
+        TotCount = NULL, RefCount = NULL, AltCount = NULL
+    ) |>
+        pivot_wider(
+            names_from = c(SampleName),
+            values_from = c(AltFrac),
+            names_prefix = "AF_"
+        )
   }
 
   if (nrow(SNPalleleCounts) > 1) {
@@ -459,15 +470,7 @@ if (nrow(snpCDS) > 0) {
   }
   SNPdetails <- left_join(
     nonsynSNP,
-    SNPalleleCounts |> mutate(
-      AltFrac = paste0(AltCount, "/", TotCount),
-      TotCount = NULL, RefCount = NULL, AltCount = NULL
-    ) |>
-      pivot_wider(
-        names_from = c(SampleName),
-        values_from = c(AltFrac),
-        names_prefix = "AF_"
-      ),
+    SNPalleleCounts,
     by = join_by("SNP" == "variant")
   ) |>
     dplyr::select(!SNP)
