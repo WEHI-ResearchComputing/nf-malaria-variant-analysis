@@ -294,7 +294,7 @@ countalleles <- function(bamfile, vcf) {
         subjectHits()
     ]
     PosInSeq <- mapToAlignments(vcfgr, eventSeq)
-    refDNA <-
+    refwidthDNA <-
       subseq(mcols(eventSeq)$seq,
         start = start(PosInSeq),
         width = width(vcfgr$REF)
@@ -366,10 +366,12 @@ altAF <- function(vcf) {
   return(
     newAF |>
       dplyr::select(-AD, -NewAltDepth, -DP) |>
-      pivot_wider(names_from = SampleName, values_from = NewAltFrac) |>
+      pivot_wider(names_from = SampleName, values_from = NewAltFrac,
+                  names_prefix = "AF_") |>
       left_join(alts) |>
       dplyr::select(
-        variant, GTparent, AF_DNA, all_of(c(parentlist, samplesOI))
+        variant, GTparent, AF_DNA, 
+        all_of(paste0("AF_", c(parentlist, samplesOI)))
       )
   )
 }
@@ -390,6 +392,16 @@ if (nrow(snpCDS) > 0) {
       vcf = snpCDS
     ) |>
       list_rbind()
+    SNPalleleCounts |> mutate(
+        SNPalleleCounts,
+        AltFrac = paste0(AltCount, "/", TotCount),
+        TotCount = NULL, RefCount = NULL, AltCount = NULL
+    ) |>
+        pivot_wider(
+            names_from = c(SampleName),
+            values_from = c(AltFrac),
+            names_prefix = "AF_"
+        )
   }
 
   if (nrow(SNPalleleCounts) > 1) {
@@ -459,15 +471,7 @@ if (nrow(snpCDS) > 0) {
   }
   SNPdetails <- left_join(
     nonsynSNP,
-    SNPalleleCounts |> mutate(
-      AltFrac = paste0(AltCount, "/", TotCount),
-      TotCount = NULL, RefCount = NULL, AltCount = NULL
-    ) |>
-      pivot_wider(
-        names_from = c(SampleName),
-        values_from = c(AltFrac),
-        names_prefix = "AF_"
-      ),
+    SNPalleleCounts,
     by = join_by("SNP" == "variant")
   ) |>
     dplyr::select(!SNP)
@@ -493,7 +497,7 @@ if (nrow(indelGene) > 0) {
   #### Report AF for 1st ALT not in reference sample.
   #### Function defined above in SNP allele counts
   if (("AD" %in% rownames(geno(header(indelGene))) &
-    "DP" %in% rownames(geno(header(snpCindelGeneDS)))
+    "DP" %in% rownames(geno(header(indelGene)))
   )) { #### SNP allele counts from vcf geno fields
     indels.AF <- altAF(indelGene)
   } else { #### no allele frequencies available
