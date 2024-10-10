@@ -294,7 +294,7 @@ countalleles <- function(bamfile, vcf) {
         subjectHits()
     ]
     PosInSeq <- mapToAlignments(vcfgr, eventSeq)
-    refDNA <-
+    refwidthDNA <-
       subseq(mcols(eventSeq)$seq,
         start = start(PosInSeq),
         width = width(vcfgr$REF)
