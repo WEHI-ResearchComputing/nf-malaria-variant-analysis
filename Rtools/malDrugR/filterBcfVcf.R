@@ -480,6 +480,7 @@ if (nrow(snpCDS) > 0) {
     seqnames = factor(), Gene = character(), pos = integer()
   )
   AApred <- GRanges()
+  SNPaltcounts <- data.frame()
 }
 
 #### Get gene details for indels and non-synonymous SNPs ####
@@ -529,6 +530,7 @@ if (nrow(indelGene) > 0) {
     )
 } else {
   indels.Feat.df <- data.frame(Gene = character(), ALT = character())
+  indels.AF <- data.frame()
 }
 
 ## Report indels in gene regions as 2 tables: gene details and allele fractions
@@ -600,6 +602,13 @@ write_tsv(
   file.path(
     varDir, paste0(argv$samplegroup, "nonsynSNPs", ".tsv")
   )
+)
+## Report alternate version of SNP allele fractions for consideration
+write_tsv(
+    SNPaltcounts,
+    file.path(
+        varDir, paste0(argv$samplegroup, "altSNP_AF", ".tsv")
+    )
 )
 
 ## Write summary table
