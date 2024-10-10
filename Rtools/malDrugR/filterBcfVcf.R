@@ -285,6 +285,8 @@ countalleles <- function(bamfile, vcf) {
     use.names = TRUE
   )
   readCounts <- map(names(vcf), function(Name) {
+    ## this did not give good enough results for indels - too many events not
+    ## contained in reads.
     vcfgr <- rowRanges(vcf)[Name]
     width1stAlt <- unlist(vcfgr$ALT)[1] |> width()
     eventSeq <- Reads[
@@ -292,7 +294,7 @@ countalleles <- function(bamfile, vcf) {
         subjectHits()
     ]
     PosInSeq <- mapToAlignments(vcfgr, eventSeq)
-    refwidthDNA <-
+    refDNA <-
       subseq(mcols(eventSeq)$seq,
         start = start(PosInSeq),
         width = width(vcfgr$REF)
@@ -303,7 +305,7 @@ countalleles <- function(bamfile, vcf) {
         width = width1stAlt
       ),
       error = function(e) {
-        print(paste(vcfgr, "ALT does not fit within reads. Skipping"))
+        print(paste(vcfgr, "ALT not within reads. Skipping"))
       }
     )
     countresult <- data.frame(
@@ -328,15 +330,6 @@ countalleles <- function(bamfile, vcf) {
 #### Get Alt allele fractions for vcf records from added geno fields ####
 #### Report AF for 1st ALT not in reference sample
 altAF <- function(vcf) {
-  if (!("AD" %in% rownames(geno(header(vcf)))
-        & "DP" %in% rownames(geno(header(vcf)))
-  ) ) {
-      print(paste0("AD &/or DP field not in vcf ",
-           argv$samplegroup, ".vcf, preventing use of "
-           , deparse(sys.call())
-           ) )
-      return(data.frame())
-  }
   GTparent <- geno(vcf)$GT[, parentlist] |>
     as.numeric() |>
     pmax()
@@ -383,22 +376,25 @@ altAF <- function(vcf) {
 
 
 if (nrow(snpCDS) > 0) {
-  #### 1. SNP allele counts from bam files
-  SNPalleleCounts <- map(
-    c(
-      paste0(samplesOI, "_nodup.bam"),
-      paste0(parentlist, "_nodup.bam")
-    ),
-    countalleles,
-    vcf = snpCDS
-  ) |>
-    list_rbind()
+  if (("AD" %in% rownames(geno(header(snpCDS))) &
+    "DP" %in% rownames(geno(header(snpCDS)))
+  )) { #### SNP allele counts from vcf geno fields
+    SNPalleleCounts <- altAF(snpCDS)
+  } else { #### SNP allele counts from bam files
+    SNPalleleCounts <- map(
+      c(
+        paste0(samplesOI, "_nodup.bam"),
+        paste0(parentlist, "_nodup.bam")
+      ),
+      countalleles,
+      vcf = snpCDS
+    ) |>
+      list_rbind()
+  }
 
   if (nrow(SNPalleleCounts) > 1) {
     SNPalleleCounts <- arrange(SNPalleleCounts, variant)
   }
-  #### 2. SNP allele counts from vcf geno fields
-  SNPaltcounts <- altAF(snpCDS)
 
   #### Annotate SNPs ####
   #### Load genome and transcript db
@@ -480,7 +476,6 @@ if (nrow(snpCDS) > 0) {
     seqnames = factor(), Gene = character(), pos = integer()
   )
   AApred <- GRanges()
-  SNPaltcounts <- data.frame()
 }
 
 #### Get gene details for indels and non-synonymous SNPs ####
@@ -494,10 +489,16 @@ if (nrow(indelGene) > 0) {
       select = "last"
     )
   ]
-  #### Get Alt allele fractions for indels from added geno fields ####
+  #### Get Alt allele fractions for indels from geno fields if available ####
   #### Report AF for 1st ALT not in reference sample.
   #### Function defined above in SNP allele counts
-  indels.AF <- altAF(indelGene)
+  if (("AD" %in% rownames(geno(header(indelGene))) &
+    "DP" %in% rownames(geno(header(snpCindelGeneDS)))
+  )) { #### SNP allele counts from vcf geno fields
+    indels.AF <- altAF(indelGene)
+  } else { #### no allele frequencies available
+    indels.AF <- data.frame()
+  }
 
   #### Get gene details for indels ####
   indels.Feat.df <- data.frame(
@@ -602,13 +603,6 @@ write_tsv(
   file.path(
     varDir, paste0(argv$samplegroup, "nonsynSNPs", ".tsv")
   )
-)
-## Report alternate version of SNP allele fractions for consideration
-write_tsv(
-    SNPaltcounts,
-    file.path(
-        varDir, paste0(argv$samplegroup, "altSNP_AF", ".tsv")
-    )
 )
 
 ## Write summary table
