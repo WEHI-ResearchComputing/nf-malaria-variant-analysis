@@ -34,4 +34,6 @@ RUN conda update --all -c conda-forge --override-channels && \
     samtools=1.16.1 \
     fastqc=0.11.8-0 \
     mosdepth=0.3.8 \
-    multiqc=1.12.0 && conda clean -ay
+    multiqc=1.12.0 \
+    mosdepth=0.3.8 \
+    && conda clean -ay
