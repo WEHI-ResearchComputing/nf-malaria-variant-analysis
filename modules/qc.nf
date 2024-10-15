@@ -23,7 +23,7 @@ process MosDepth {
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
-    tuple  val(groupId), path(bam), path(bai)
+    tuple  val(sampleId), path(bam), path(bai)
 
     output:
     path("*.global.dist.txt"), emit: txt
@@ -31,7 +31,7 @@ process MosDepth {
 
     script:
     """
-    mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${groupId} ${bam} 
+    mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${sampleId} ${bam} 
     """
 }
 
