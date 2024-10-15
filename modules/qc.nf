@@ -17,7 +17,7 @@ process FastQC {
     """
 }
 
-process Mosdepth {
+process MosDepth {
     label 'Mosdepth'
     tag "${groupId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
@@ -31,7 +31,7 @@ process Mosdepth {
 
     script:
     """
-    mosdepth -t ${task.cpus} --no-per-base --mapq 10 $groupId ${bams} 
+    mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${groupId} ${bams} 
     """
 }
 

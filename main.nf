@@ -28,7 +28,7 @@ include { RPlotFull } from './modules/stvariant.nf'
 include { RPlotROI } from './modules/stvariant.nf'
 
 include{ FastQC } from './modules/qc.nf'
-include{ Mosdepth } from './modules/qc.nf'
+include{ MosDepth } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
 process foo {
@@ -130,9 +130,18 @@ workflow {
     
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
     //----------------QC tools------------------------------------------
-    MultiQC(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]) \
-            Mosdepth(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]) \
-            )  
+    //MultiQC integrates files from fastqc and mosdepth, found in input dir, into single report
+    fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([])
+    input_ch.map{row -> tuple(row[0])}
+            .unique()
+            .join(bamlist_ch)
+            .combine(bam_ch.bamnodup,by:0)
+            .groupTuple(by:[0,1,2,3]) //??
+            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{mosdepth_input_ch} // Want it to emit val(groupId), path(bams), path(parentbams)
+    
+    mosdepth_ch=MosDepth(mosdepth_input_ch)
+    
+    MultiQC( fastqc_ch MosDepth(mosdepth_ch) )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> tuple(row[0],row[4],row[5])}
