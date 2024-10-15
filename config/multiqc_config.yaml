@@ -1,4 +1,14 @@
 extra_fn_clean_exts:
   - "_R1"
 export_plots: true
-
+remove_sections:
+  - fastqc_per_sequence_gc_content
+  - fastqc_adapter_content
+  - fastqc_per_base_sequence_content
+mosdepth_config:
+  general_stats_coverage:
+    - 10
+    - 30
+  exclude_contigs:
+    - "*_API_*"
+    -  "*_M*"
