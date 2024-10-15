@@ -23,10 +23,10 @@ process MosDepth {
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
-    path(bams)
-    
+    tuple  val(groupId), path(bams)
+
     output:
-    path("*.global.dist.txt"), emit: coverage
+    path("*.global.dist.txt"), emit: txt
 
 
     script:
