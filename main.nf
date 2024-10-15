@@ -131,17 +131,11 @@ workflow {
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
     //----------------QC tools------------------------------------------
     //MultiQC integrates files from fastqc and mosdepth, found in input dir, into single report
-    fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([])
-    input_ch.map{row -> tuple(row[0])}
-            .unique()
-            .join(bamlist_ch)
-            .combine(bam_ch.bamnodup,by:0)
-            .groupTuple(by:[0,1,2,3]) //??
-            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{mosdepth_input_ch} // Want it to emit val(groupId), path(bams), path(parentbams)
+    fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect())
+
+    mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
     
-    mosdepth_ch=MosDepth(mosdepth_input_ch)
-    
-    MultiQC( fastqc_ch MosDepth(mosdepth_ch) )  
+    MultiQC( fastqc_ch.zip.collect().ifEmpty([]) mosdepth_ch )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> tuple(row[0],row[4],row[5])}
