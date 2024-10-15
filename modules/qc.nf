@@ -17,6 +17,24 @@ process FastQC {
     """
 }
 
+process Mosdepth {
+    label 'Mosdepth'
+    tag "${groupId}"
+    publishDir "${params.outdir}/QC", mode: 'copy'
+    cache true
+    input:
+    path(bams)
+    
+    output:
+    path("*.global.dist.txt"), emit: coverage
+
+
+    script:
+    """
+    mosdepth -t ${task.cpus} --no-per-base --mapq 10 $groupId ${bams} 
+    """
+}
+
 process MultiQC {
     label 'Multiqc'
     cache true
