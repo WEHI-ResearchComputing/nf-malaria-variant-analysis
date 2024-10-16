@@ -31,7 +31,7 @@ process MosDepth {
 
     script:
     """
-    mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${sampleId} ${bam} 
+    mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${bam.baseName} ${bam} 
     """
 }
 

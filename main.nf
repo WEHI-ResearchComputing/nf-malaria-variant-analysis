@@ -135,7 +135,7 @@ workflow {
 
     mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
     
-    MultiQC( fastqc_ch.zip.collect().ifEmpty([]) )  
+    MultiQC( fastqc_ch.zip.mix(mosdepth_ch).collect().ifEmpty([]) )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> tuple(row[0],row[4],row[5])}

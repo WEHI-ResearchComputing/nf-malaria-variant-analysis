@@ -5,6 +5,7 @@ remove_sections:
   - fastqc_per_sequence_gc_content
   - fastqc_adapter_content
   - fastqc_per_base_sequence_content
+  - mosdepth-coverage-dist-cov
 mosdepth_config:
   general_stats_coverage:
     - 10
