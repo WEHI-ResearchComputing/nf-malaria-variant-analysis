@@ -28,6 +28,7 @@ include { RPlotFull } from './modules/stvariant.nf'
 include { RPlotROI } from './modules/stvariant.nf'
 
 include{ FastQC } from './modules/qc.nf'
+include{ MosDepth } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
 process foo {
@@ -129,7 +130,12 @@ workflow {
     
     merged_ch=Merge(parent_ch) // Emits tuple val(parentId),path(parentId.bam)
     //----------------QC tools------------------------------------------
-    MultiQC(FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect()).zip.collect().ifEmpty([]))  
+    //MultiQC integrates files from fastqc and mosdepth, found in input dir, into single report
+    fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect())
+
+    mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
+    
+    MultiQC( fastqc_ch.zip.mix(mosdepth_ch).collect().ifEmpty([]) )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> tuple(row[0],row[4],row[5])}
