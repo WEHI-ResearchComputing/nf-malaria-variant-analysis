@@ -35,6 +35,24 @@ process MosDepth {
     """
 }
 
+process FlagStats {
+    label 'Flagstats'
+    tag "${groupId}"
+    publishDir "${params.outdir}/QC", mode: 'copy'
+    cache true
+    input:
+    path(bam)
+
+    output:
+    path("*.flagstats"), emit: txt
+
+
+    script:
+    """
+    samtools flagstats ${bam} > ${bam.baseName}.flagstats
+    """
+}
+
 process MultiQC {
     label 'Multiqc'
     cache true

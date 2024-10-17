@@ -29,6 +29,7 @@ include { RPlotROI } from './modules/stvariant.nf'
 
 include{ FastQC } from './modules/qc.nf'
 include{ MosDepth } from './modules/qc.nf'
+include{ FlagStats } from './modules/qc.nf'
 include{ MultiQC } from './modules/qc.nf'
 
 process foo {
@@ -134,8 +135,9 @@ workflow {
     fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect())
 
     mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
+    flagstat_ch=FlagStats(bam_ch.bamnodup.map{row->row[1]})
     
-    MultiQC( fastqc_ch.zip.mix(mosdepth_ch).collect().ifEmpty([]) )  
+    MultiQC( fastqc_ch.zip.mix(mosdepth_ch, flagstat_ch).collect().ifEmpty([]) )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
     input_ch.map{row -> tuple(row[0],row[4],row[5])}
