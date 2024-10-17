@@ -3,11 +3,11 @@
 ## then uses functions from QDNAseq to calculate read depths and copynumbers.
 ## A 'mappability file' is used for correcting the counts
 ##
-#Rscript ${projectDir}/bin/malDrugR/copynumQDNAseq.R \
-    #    --samplegroup ${groupId} \
-    #    --samplekeyfile ${samplekeyfile} \
-    #    --groupkeyfile ${groupkeyfile} \
-    #    --bin_in_kbases ${params.bin_in_kbases}
+# Rscript ${projectDir}/bin/malDrugR/copynumQDNAseq.R \
+#    --samplegroup ${groupId} \
+#    --samplekeyfile ${samplekeyfile} \
+#    --groupkeyfile ${groupkeyfile} \
+#    --bin_in_kbases ${params.bin_in_kbases}
 #### Read command-line arguments ####
 library(argparser)
 argp <- arg_parser(paste(
@@ -17,23 +17,23 @@ argp <- arg_parser(paste(
   " sample are saved as RDS."
 ))
 argp <- add_argument(argp, "--samplegroup",
-                     help = "Group name of related samples. Required"
+  help = "Group name of related samples. Required"
 )
 argp <- add_argument(argp, "--parentId",
-                     help = "Parent ID of the group."
+  help = "Parent ID of the group."
 )
 argp <- add_argument(argp, "--bams",
-                     help = "file containing group info including short ID for parent."
+  help = "file containing group info including short ID for parent."
 )
 argp <- add_argument(argp, "--bin_in_kbases",
-                     default = "1",
-                     help = "bin size in kbp"
+  default = "1",
+  help = "bin size in kbp"
 )
 argp <- add_argument(argp, "--refDir",
-                     help = "reference directory "
+  help = "reference directory "
 )
 argp <- add_argument(argp, "--bsref",
-                     help = "BS reference name to import library"
+  help = "BS reference name to import library"
 )
 argv <- parse_args(argp)
 
@@ -66,13 +66,13 @@ makePfBins <- function(bin_in_kbases) {
   if (file.exists(binRfile)) {
     pfBins <- readRDS(binRfile)
   } else {
-    pfBins <- createBins(pfg, as.numeric(bin_in_kbases)
-    )
+    pfBins <- createBins(pfg, as.numeric(bin_in_kbases))
     mapityfile <- file.path(
       refDir, "mappability", "kmer30_err2.bw"
     )
-    if( !file.exists(mapityfile) ){
-      stop(paste("Mappability file", mapityfile, "not found"))}
+    if (!file.exists(mapityfile)) {
+      stop(paste("Mappability file", mapityfile, "not found"))
+    }
     ### Untested! bigWig executables require module ucsc-tools
     remotes::install_github("WEHI-ResearchComputing/EnvironmentModules")
     library(EnvironmentModules)
@@ -81,8 +81,9 @@ makePfBins <- function(bin_in_kbases) {
       "/stornext/System/data/apps/ucsc-tools/ucsc-tools-331/bin",
       "bigWigAverageOverBed"
     )
-    if( !file.exists(bigWigpath) ){
-      stop(paste(bigWigpath, "not found."))}
+    if (!file.exists(bigWigpath)) {
+      stop(paste(bigWigpath, "not found."))
+    }
     pfBins$mappability <- calculateMappability(
       pfBins,
       bigWigFile = mapityfile,
@@ -167,7 +168,78 @@ countsCorrected <- estimateCorrection(countsFiltered)
 copyNums <- correctBins(countsCorrected)
 ## Scale copy numbers by median (default)
 copyNumsNormed <- normalizeBins(copyNums)
+## Segment copynumbers and call as 'gain' or 'loss
+copyNumsSegmented <- segmentBins(copyNumsNormed,
+  transformFun = "sqrt", smoothBy = 5
+)
+copyNumCalls <- callBins(copyNumsSegmented,
+  method = "cutoff",
+  cutoffs = log2(c(loss = 0.5, gain = 2))
+)
+cn_segments <- assayDataElement(copyNumCalls, "calls") |>
+  as.data.frame() |>
+  rownames_to_column("chr_range") |>
+  left_join(
+    assayDataElement(copyNumCalls, "segmented") |>
+      as.data.frame() |>
+      rownames_to_column("chr_range"),
+    by = "chr_range", suffix = c("_call", "_segCN")
+  ) |> # remove NA ranges before grouping.
+  # Matching calls will span NA regions
+  na.omit()
+
+cn_segments$seg <- consecutive_id(cn_segments[, -1])
+cn_segments <- cn_segments |>
+  mutate(
+    chrom = str_remove(chr_range, ":.*"),
+    range = str_remove(chr_range, ".*:"),
+    start = str_remove(range, "-.*") |> as.numeric(),
+    end = str_remove(range, ".*-") |> as.numeric(),
+    chr_range = NULL, range = NULL
+  )
+
+cn_seg_trimmed <- cn_segments |>
+  # combine ranges with same CN call
+  summarise(
+    .by = c(seg, chrom),
+    across(!c(start, end), unique),
+    start = min(start),
+    end = max(end)
+  )
+callcols <- paste0(c(parentID, sampleL), "_call")
+cn_seg_trimmed <-
+  cn_seg_trimmed |>
+  # remove ranges where all calls are the same, i.e. all equal to parent
+  rowwise() |>
+  dplyr::filter(
+    !n_distinct(c_across(callcols)) == 1
+  ) |>
+  dplyr::select(chrom, start, end, ends_with("_segCN"))
+
+## Write table of segmented CN calls to csv file
+## First clean for display
+cn_seg_out <-
+  cn_seg_trimmed |>
+  mutate(
+    across(ends_with("_segCN"), ~ round(.x, 2)),
+    chrom = str_remove(chrom, "[^_]+_") |> str_remove("_.*"),
+    start = prettyNum(start, big.mark = ","),
+    end = prettyNum(end, big.mark = ",")
+  ) |>
+  rename_with(~ str_remove(.x, "_segCN"))
+
+write_csv(
+  cn_seg_out,
+  file.path(
+    paste0(
+      groupId, ".segmentedcalls_",
+      argv$bin_in_kbases, "k", ".csv"
+    )
+  )
+)
+
 ## Scale strain copy numbers by dividing by parent copy numbers
+## Use pre-segmentation version
 StrainScaledByParents <- compareToReference(
   copyNumsNormed,
   c(FALSE, rep(1, times = length(groupbamL)))
@@ -179,30 +251,38 @@ convertQDNAtoDF <- function(qobject) {
   } else if ("copynumber" %in% assayDataElementNames(qobject)) {
     scoreDF <- as.data.frame(assayDataElement(qobject, "copynumber"))
   }
-  scoreDF$chrom <- sapply(strsplit(rownames(scoreDF), ":"),
-                          function(x) (unlist(x)[1]))
-  scoreDF$range <- sapply(strsplit(rownames(scoreDF), ":"),
-                          function(x) (unlist(x)[2]))
-  scoreDF$start <- sapply(strsplit(scoreDF$range, "-"),
-                          function(x) (as.numeric(unlist(x)[1])))
-  scoreDF$end <- sapply(strsplit(scoreDF$range, "-"),
-                        function(x) (as.numeric(unlist(x)[2])))
+  scoreDF$chrom <- sapply(
+    strsplit(rownames(scoreDF), ":"),
+    function(x) (unlist(x)[1])
+  )
+  scoreDF$range <- sapply(
+    strsplit(rownames(scoreDF), ":"),
+    function(x) (unlist(x)[2])
+  )
+  scoreDF$start <- sapply(
+    strsplit(scoreDF$range, "-"),
+    function(x) (as.numeric(unlist(x)[1]))
+  )
+  scoreDF$end <- sapply(
+    strsplit(scoreDF$range, "-"),
+    function(x) (as.numeric(unlist(x)[2]))
+  )
 
   return(scoreDF)
 }
 CN_df <- convertQDNAtoDF(copyNumsNormed)
 saveRDS(
   CN_df,
-  file.path(paste0(groupId, ".CN_df_",
-      argv$bin_in_kbases, "k", ".rds"
-    )
-  )
+  file.path(paste0(
+    groupId, ".CN_df_",
+    argv$bin_in_kbases, "k", ".rds"
+  ))
 )
 scaled_df <- convertQDNAtoDF(StrainScaledByParents)
 saveRDS(
   scaled_df,
-  file.path(paste0(groupId, ".CN_compare_df_",
-      argv$bin_in_kbases, "k", ".rds"
-    )
-  )
+  file.path(paste0(
+    groupId, ".CN_compare_df_",
+    argv$bin_in_kbases, "k", ".rds"
+  ))
 )
