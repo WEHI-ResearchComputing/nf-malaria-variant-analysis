@@ -1,4 +1,3 @@
-
 process Bcf{
     label 'Bcftools'
     tag "${groupId}"   
@@ -112,7 +111,7 @@ process RCopyNum {
             val(bins)
 
     output:
-    tuple val(groupId), path("*.rds")
+    tuple val(groupId), path("*.rds"), path("*.csv")
 
     script:
     """
