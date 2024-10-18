@@ -213,8 +213,7 @@ cn_seg_trimmed <-
   rowwise() |>
   dplyr::filter(
     !n_distinct(c_across(callcols)) == 1
-  ) |>
-  dplyr::select(chrom, start, end, ends_with("_segCN"))
+  )
 
 ## Write table of segmented CN calls to csv file
 ## First clean for display
@@ -223,9 +222,11 @@ cn_seg_out <-
   mutate(
     across(ends_with("_segCN"), ~ round(.x, 2)),
     chrom = str_remove(chrom, "[^_]+_") |> str_remove("_.*"),
-    start = prettyNum(start, big.mark = ","),
-    end = prettyNum(end, big.mark = ",")
+    start = prettyNum(start, big.mark = ",") |> str_replace(",001$", "k"),
+    end = prettyNum(end, big.mark = ",") |> str_replace(",000$", "k"),
+    Location = paste0(chrom, ":", start, "-", end)
   ) |>
+  dplyr::select(Location, ends_with("_segCN")) |>
   rename_with(~ str_remove(.x, "_segCN"))
 
 write_csv(
