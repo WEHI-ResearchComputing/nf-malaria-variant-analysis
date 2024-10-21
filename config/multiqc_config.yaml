@@ -13,5 +13,5 @@ mosdepth_config:
   exclude_contigs:
     - "*_API_*"
     -  "*_M*"
-samtools_flagstats:
-  contents: mapped 
+table_columns_visible:
+    mapped_passed_pct: true
