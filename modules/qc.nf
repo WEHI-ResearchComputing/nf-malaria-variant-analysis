@@ -1,6 +1,6 @@
 process FastQC {
     label 'Fastqc' // assumes resources are defined in a label
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
