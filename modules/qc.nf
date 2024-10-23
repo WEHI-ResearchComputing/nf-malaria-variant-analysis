@@ -37,7 +37,7 @@ process MosDepth {
 
 process FlagStats {
     label 'Flagstats'
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
