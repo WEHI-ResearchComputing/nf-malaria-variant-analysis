@@ -135,7 +135,7 @@ workflow {
     fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect())
 
     mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
-    flagstat_ch=FlagStats(bam_ch.bamnodup.map{row->row[1]})
+    flagstat_ch=FlagStats(bam_ch[0], bam_ch.bamnodup.map{row->row[1]})
     
     MultiQC( fastqc_ch.zip.mix(mosdepth_ch, flagstat_ch).collect().ifEmpty([]) )  
     //----------------BCF tools----------------------------------------

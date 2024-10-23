@@ -19,7 +19,7 @@ process FastQC {
 
 process MosDepth {
     label 'Mosdepth'
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
@@ -37,10 +37,11 @@ process MosDepth {
 
 process FlagStats {
     label 'Flagstats'
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
+    val(sampleId)
     path(bam)
 
     output:
