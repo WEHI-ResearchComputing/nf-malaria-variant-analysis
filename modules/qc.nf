@@ -41,7 +41,8 @@ process FlagStats {
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
-    tuple val(sampleId), path(bam)
+    val(sampleId)
+    path(bam)
 
     output:
     path("*.flagstats"), emit: txt
