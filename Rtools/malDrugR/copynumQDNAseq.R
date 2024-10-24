@@ -170,7 +170,7 @@ copyNums <- correctBins(countsCorrected)
 copyNumsNormed <- normalizeBins(copyNums)
 ## Segment copynumbers and call as 'gain' or 'loss
 copyNumsSegmented <- segmentBins(copyNumsNormed,
-  transformFun = "sqrt", smoothBy = 5
+  transformFun = "sqrt"
 )
 copyNumCalls <- callBins(copyNumsSegmented,
   method = "cutoff",
@@ -212,7 +212,7 @@ cn_seg_trimmed <-
   # remove ranges where all calls are the same, i.e. all equal to parent
   rowwise() |>
   dplyr::filter(
-    !n_distinct(c_across(callcols)) == 1
+    n_distinct(c_across(all_of(callcols))) > 1
   )
 
 ## Write table of segmented CN calls to csv file
