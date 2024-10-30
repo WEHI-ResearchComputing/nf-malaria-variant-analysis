@@ -1,6 +1,6 @@
 process FastQC {
     label 'Fastqc' // assumes resources are defined in a label
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
@@ -19,7 +19,7 @@ process FastQC {
 
 process MosDepth {
     label 'Mosdepth'
-    tag "${groupId}"
+    tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
@@ -32,6 +32,25 @@ process MosDepth {
     script:
     """
     mosdepth -t ${task.cpus} --no-per-base --mapq 10 ${bam.baseName} ${bam} 
+    """
+}
+
+process FlagStats {
+    label 'Flagstats'
+    tag "${sampleId}"
+    publishDir "${params.outdir}/QC", mode: 'copy'
+    cache true
+    input:
+    val(sampleId)
+    path(bam)
+
+    output:
+    path("*.flagstats"), emit: txt
+
+
+    script:
+    """
+    samtools flagstats ${bam} > ${bam.baseName}.flagstats
     """
 }
 
