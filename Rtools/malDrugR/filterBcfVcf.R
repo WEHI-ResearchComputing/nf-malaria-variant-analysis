@@ -271,7 +271,9 @@ writeVcf(
 
 #### Non-synonymous SNPs in coding regions  ####
 eventCDS <- findOverlaps(rowRanges(majsom), GRanges(CDSnoVar))
-snpCDS <- subset(majsom[queryHits(eventCDS)], !INDEL)
+snpCDS <- subset(
+    majsom[queryHits(eventCDS) |> unique() ],
+    !INDEL)
 
 #### Read bam files to get allele counts of snpCDS positions ###
 countalleles <- function(bamfile, vcf) {
@@ -452,7 +454,7 @@ if (nrow(snpCDS) > 0) {
     !is.na(mcols(AApred)$warning))]
   nonsynSNP <-
     cbind(
-      as.data.frame(AApred) |> dplyr::select(-ALT),
+      as_tibble(AApred) |> dplyr::select(-ALT),
       data.frame(
         SNP = names(AApred),
         ALT = as.character(unlist(AApred$ALT)),
@@ -598,9 +600,15 @@ if (nrow(geneDetail) > 0) {
     )
 }
 
-SNPdetails <- left_join(
-  SNPdetails, snps.Feat.df
-)
+## sanity check before cbind:
+if(
+    !all.equal(SNPdetails$seqnames, snps.Feat.df$seqnames) |
+    !all.equal(SNPdetails$pos, snps.Feat.df$pos)
+) stop("Mismatch in join of SNP gene details")
+
+SNPdetails <- cbind(
+  SNPdetails, snps.Feat.df |> dplyr::select(-seqnames, -pos)
+) 
 
 write_tsv(
   SNPdetails,
