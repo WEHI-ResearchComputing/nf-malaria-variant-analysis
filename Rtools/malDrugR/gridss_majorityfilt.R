@@ -175,7 +175,7 @@ filtdf <- data.frame(
   as.data.frame(geno(somEitherFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
 ) |>
     arrange(gridssID)
-write_tsv(
+write_csv(
   filtdf,
-  file.path(paste0(argv$samplegroup, "_somatic_by_QUALorAF.tsv"))
+  file.path(paste0(argv$samplegroup, "_somatic_by_QUALorAF.csv"))
 )

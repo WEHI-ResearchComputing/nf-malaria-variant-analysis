@@ -541,24 +541,24 @@ if (nrow(indelGene) > 0) {
 }
 
 ## Report indels in gene regions as 2 tables: gene details and allele fractions
-write_tsv(
+write_csv(
   indels.Feat.df,
   file.path(
     varDir,
     paste0(
       argv$samplegroup,
-      "genefiltIndels.tsv"
+      "genefiltIndels.csv"
     )
   )
 )
 
-write_tsv(
+write_csv(
   indels.AF,
   file.path(
     varDir,
     paste0(
       argv$samplegroup,
-      "AFfiltIndels.tsv"
+      "AFfiltIndels.csv"
     )
   )
 )
@@ -610,10 +610,10 @@ SNPdetails <- cbind(
   SNPdetails, snps.Feat.df |> dplyr::select(-seqnames, -pos)
 ) 
 
-write_tsv(
+write_csv(
   SNPdetails,
   file.path(
-    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".tsv")
+    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".csv")
   )
 )
 
@@ -626,12 +626,12 @@ events.stats.df <- data.frame(
   SNP_nonsyn = length(AApred),
   Indel_gene = length(indelGene)
 )
-write_tsv(
+write_csv(
   events.stats.df,
   file.path(
     varDir, paste0(
       argv$samplegroup, critSamplesSom,
-      "plusstats.Qcrit", argv$QUALcrit, ".tsv"
+      "plusstats.Qcrit", argv$QUALcrit, ".csv"
     )
   )
 )
