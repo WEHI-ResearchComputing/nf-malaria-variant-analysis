@@ -166,7 +166,7 @@ writeVcf(somEitherFilt,
 
 filtdf <- data.frame(
   gridssID = rownames(somEitherFilt),
-  chrom = seqnames(somEitherFilt),
+  seqname = seqnames(somEitherFilt),
   pos = start(somEitherFilt),
   REF = ref(somEitherFilt) |> unlist(),
   ALT = alt(somEitherFilt) |> unlist() |> str_trunc(width = 24, side = "right"),
