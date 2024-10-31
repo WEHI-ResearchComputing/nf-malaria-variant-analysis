@@ -362,7 +362,7 @@ altAF <- function(vcf) {
     summarize(altDNA = list(value))
   alts$variant <- names(vcf)
   alts$GTparent <- GTparent
-  alts$AF_DNA <-
+  alts$ALTnew <-
     apply(alts, 1, function(row) unlist(row$altDNA)[row$GTparent + 1])
 
   return(
@@ -372,7 +372,7 @@ altAF <- function(vcf) {
                   names_prefix = "AF_") |>
       left_join(alts) |>
       dplyr::select(
-        variant, GTparent, AF_DNA, 
+        variant, GTparent, ALTnew, 
         all_of(paste0("AF_", c(parentlist, samplesOI)))
       )
   )
@@ -463,7 +463,7 @@ if (nrow(snpCDS) > 0) {
           paste0(REFAA, PROTEINLOC, VARAA)
         )
       )
-    ) |> dplyr::select(SNP, seqnames,
+    ) |> dplyr::select(SNP, seqname=seqnames,
       pos = start, strand, REF, ALT, QUAL,
       AAchanges, REFCODON, VARCODON, warning
     )
@@ -479,7 +479,7 @@ if (nrow(snpCDS) > 0) {
     dplyr::select(!SNP)
 } else {
   SNPdetails <- data.frame(
-    seqnames = factor(), Gene = character(), pos = integer()
+    seqname = factor(), Gene = character(), pos = integer()
   )
   AApred <- GRanges()
 }
@@ -509,11 +509,11 @@ if (nrow(indelGene) > 0) {
   #### Get gene details for indels ####
   indels.Feat.df <- data.frame(
     rowRanges(indelGene)[, c("REF", "ALT", "QUAL")],
-    ID = getGffAttribute(indelGeneAttr, "ID") |> unlist()
+    GeneID = getGffAttribute(indelGeneAttr, "ID") |> unlist() |> unname()
   )
 
   baseIDEvents <- str_replace(
-    indels.Feat.df$ID, "^.*P", "P"
+    indels.Feat.df$GeneID, "^.*P", "P"
   ) |>
     str_remove("[\\.\\-].*$")
   geneDetail <- map(baseIDEvents, function(ID) {
@@ -525,7 +525,7 @@ if (nrow(indelGene) > 0) {
   }) |>
     list_rbind()
   indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |>
-    dplyr::select(-width, -strand) |>
+    dplyr::select(-width, -strand, seqname=seqnames) |>
     mutate(
       Gene = case_when(
         is.na(GeneName) ~ Description |>
@@ -541,24 +541,24 @@ if (nrow(indelGene) > 0) {
 }
 
 ## Report indels in gene regions as 2 tables: gene details and allele fractions
-write_tsv(
+write_csv(
   indels.Feat.df,
   file.path(
     varDir,
     paste0(
       argv$samplegroup,
-      "genefiltIndels.tsv"
+      "genefiltIndels.csv"
     )
   )
 )
 
-write_tsv(
+write_csv(
   indels.AF,
   file.path(
     varDir,
     paste0(
       argv$samplegroup,
-      "AFfiltIndels.tsv"
+      "AFfiltIndels.csv"
     )
   )
 )
@@ -571,20 +571,19 @@ snpCDSAttr <- pf_featuresNovar[
 ]
 
 snps.Feat.df <- data.frame(
-  seqnames = seqnames(AApred),
+  seqname = seqnames(AApred),
   pos = start(AApred),
-  ID = getGffAttribute(snpCDSAttr, "ID") |> unlist()
+  GeneID = getGffAttribute(snpCDSAttr, "ID") |> unlist() |> unname()
 )
 baseIDEvents <- str_replace(
-  snps.Feat.df$ID, "^.*P", "P"
+  snps.Feat.df$GeneID, "^.*P", "P"
 ) |>
   str_remove("[\\.\\-].*$")
 geneDetail <- map(baseIDEvents, function(ID) {
   genegff <- pf_featuresNovar[getGffAttribute(pf_featuresNovar, "ID") == ID]
   data.frame(
     GeneName = getGffAttribute(genegff, "Name"),
-    Description = getGffAttribute(genegff, "description"),
-    GeneID = ID
+    Description = getGffAttribute(genegff, "description")
   )
 }) |>
   list_rbind()
@@ -596,24 +595,24 @@ if (nrow(geneDetail) > 0) {
           str_replace_all(pattern = "\\+", replacement = " "),
         TRUE ~ GeneName
       ),
-      GeneName = NULL, Description = NULL, ID = NULL
+      GeneName = NULL, Description = NULL
     )
 }
 
 ## sanity check before cbind:
 if(
-    !all.equal(SNPdetails$seqnames, snps.Feat.df$seqnames) |
+    !all.equal(SNPdetails$seqname, snps.Feat.df$seqname) |
     !all.equal(SNPdetails$pos, snps.Feat.df$pos)
 ) stop("Mismatch in join of SNP gene details")
 
 SNPdetails <- cbind(
-  SNPdetails, snps.Feat.df |> dplyr::select(-seqnames, -pos)
+  SNPdetails, snps.Feat.df |> dplyr::select(-seqname, -pos)
 ) 
 
-write_tsv(
+write_csv(
   SNPdetails,
   file.path(
-    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".tsv")
+    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".csv")
   )
 )
 
@@ -626,12 +625,12 @@ events.stats.df <- data.frame(
   SNP_nonsyn = length(AApred),
   Indel_gene = length(indelGene)
 )
-write_tsv(
+write_csv(
   events.stats.df,
   file.path(
     varDir, paste0(
       argv$samplegroup, critSamplesSom,
-      "plusstats.Qcrit", argv$QUALcrit, ".tsv"
+      "plusstats.Qcrit", argv$QUALcrit, ".csv"
     )
   )
 )

@@ -138,7 +138,7 @@ process FilterBcfVcf {
             path(bams), path(bai)
 
     output:
-    path "*.tsv", emit: tsv 
+    path "*.csv", emit: csv 
     path "*plus*.Qcrit*.vcf", emit: vcf
 
     script:
@@ -165,7 +165,7 @@ process FilterGridssSV {
     
     output:
     tuple val(groupId), path("${groupId}_*.vcf"), emit: vcf
-    tuple val(groupId), path("${groupId}*.tsv"), emit: txt 
+    tuple val(groupId), path("${groupId}*.csv"), emit: csv 
     script:
     """
     Rscript --vanilla ${projectDir}/Rtools/malDrugR/gridss_majorityfilt.R \

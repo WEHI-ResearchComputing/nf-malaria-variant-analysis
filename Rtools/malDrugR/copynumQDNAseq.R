@@ -168,7 +168,8 @@ countsCorrected <- estimateCorrection(countsFiltered)
 copyNums <- correctBins(countsCorrected)
 ## Scale copy numbers by median (default)
 copyNumsNormed <- normalizeBins(copyNums)
-## Segment copynumbers and call as 'gain' or 'loss
+## Segment copynumbers and call as 'gain' or 'loss'
+set.seed(64)
 copyNumsSegmented <- segmentBins(copyNumsNormed,
   transformFun = "sqrt"
 )
