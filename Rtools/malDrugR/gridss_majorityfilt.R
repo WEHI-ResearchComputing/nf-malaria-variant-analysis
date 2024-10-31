@@ -172,7 +172,9 @@ filtdf <- data.frame(
   ALT = alt(somEitherFilt) |> unlist() |> str_trunc(width = 24, side = "right"),
   as.data.frame(geno(somEitherFilt)$AF) |> unnest(cols = everything()) |>
     rename_with(~ paste0("AF_", .x)),
-  as.data.frame(geno(somEitherFilt)$QUAL) |> rename_with(~ paste0("QUAL_", .x))
+  as.data.frame(geno(somEitherFilt)$QUAL) |> 
+      rename_with(~ paste0("QUAL_", .x)) |>
+      round()
 ) |>
     arrange(gridssID)
 write_csv(
