@@ -91,7 +91,7 @@ fix_parid <- function(vcf) {
 #### Read input vcf ####
 somvcfname <- paste0(
   argv$samplegroup,
-  "_high_and_low_confidence_somatic.vcf.bgz"
+  ".SV_high_and_low_confidence_somatic.vcf.bgz"
 )
 somvcf <- tryCatch(
   readVcf(somvcfname),
@@ -118,7 +118,7 @@ if (is.na(argv$critsamplecount)) {
 BQcrit <- 200
 Qcrit <- 200
 acceptableFilt <- c("PASS", "imprecise")
-firstFiltname <- paste0(argv$samplegroup, "_high_and_imprecise_somatic.vcf")
+firstFiltname <- paste0(argv$samplegroup, ".SV_high_and_imprecise_somatic.vcf")
 
 AFcrit <- 0.15
 
@@ -162,7 +162,7 @@ somEitherFilt <- rbind(
     majsom, somMinAF
 ) |> unique() |> sort()
 writeVcf(somEitherFilt, 
-         paste0(argv$samplegroup, "_somatic_by_QUALorAF.vcf"))
+         paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.vcf"))
 
 filtdf <- data.frame(
   gridssID = rownames(somEitherFilt),
@@ -179,5 +179,5 @@ filtdf <- data.frame(
     arrange(gridssID)
 write_csv(
   filtdf,
-  file.path(paste0(argv$samplegroup, "_somatic_by_QUALorAF.csv"))
+  file.path(paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.csv"))
 )

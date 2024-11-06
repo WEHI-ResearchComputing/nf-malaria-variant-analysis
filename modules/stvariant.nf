@@ -9,7 +9,7 @@ process Bcf{
             path(bams),path(parentbams)
     
     output:
-    tuple  val(groupId), path("${groupId}.vcf")
+    tuple  val(groupId), path("${groupId}.snvs_indels.vcf")
 
 
     script:
@@ -18,7 +18,7 @@ process Bcf{
     -a AD,DP -f ${ref}.fasta  \
     --bam-list ${bamlist}  | \
     bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ov  \
-    --output "${groupId}.vcf" -
+    --output "${groupId}.snvs_indels.vcf" -
     """
 }
 
@@ -43,7 +43,7 @@ process Gridss{
     gridss --reference ${ref}.fasta  \
     --jar ${params.gridss_jar_path} --assembly ${groupId}.bam  \
     --workingdir . --threads ${task.cpus} --skipsoftcliprealignment \
-    --output ${groupId}.vcf  ${bamfilenames}
+    --output ${groupId}.GRIDSS.vcf  ${bamfilenames}
     
     
     """
@@ -76,7 +76,7 @@ process SomaticFilter{
             path(vcf)
             
     output:
-    tuple val(groupId),path("${groupId}_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
+    tuple val(groupId),path("${groupId}.SV_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
     
     script:
     
@@ -87,8 +87,8 @@ process SomaticFilter{
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
    
     Rscript --vanilla ${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R \
-        --input ${groupId}.vcf \
-        --fulloutput ${groupId}_high_and_low_confidence_somatic.vcf \
+        --input ${groupId}.GRIDSS.vcf \
+        --fulloutput ${groupId}.SV_high_and_low_confidence_somatic.vcf \
         --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
         --ref ${bsref}  \
         --normalordinal 1  --tumourordinal \$tumourordinals
@@ -164,7 +164,7 @@ process FilterGridssSV {
     tuple  val(groupId),val(parentbamlist), path(vcf)
     
     output:
-    tuple val(groupId), path("${groupId}_*.vcf"), emit: vcf
+    tuple val(groupId), path("${groupId}*.vcf"), emit: vcf
     tuple val(groupId), path("${groupId}*.csv"), emit: csv 
     script:
     """
