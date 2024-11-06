@@ -227,9 +227,9 @@ somatic <- function(gt, pgt) {
 # ---------- Read vcf files, and filter --------------------------------
 #
 samplevcf <- tryCatch(
-  readVcf(paste0(argv$samplegroup, ".vcf")),
+  readVcf(paste0(argv$samplegroup, ".snvs_indels.vcf")),
   error = function(e) {
-    stop(paste(e, "Filepath:", paste0(argv$samplegroup, ".vcf")))
+    stop(paste(e, "Filepath:", paste0(argv$samplegroup, ".snvs_indels.vcf")))
   }
 )
 ## Filter
@@ -261,7 +261,8 @@ majsom <- eventFilt[
 writeVcf(
   majsom, file.path(
     varDir,
-    paste0(argv$samplegroup, critSamplesSom, "plus", ".Qcrit", argv$QUALcrit, ".vcf")
+    paste0(argv$samplegroup, ".snvs_indels_filt.",
+           critSamplesSom, "plus.Qcrit", argv$QUALcrit, ".vcf")
   )
 )
 
@@ -566,10 +567,7 @@ write_csv(
   INDELdetails,
   file.path(
     varDir,
-    paste0(
-      argv$samplegroup,
-      "genefiltIndels.csv"
-    )
+    paste0(argv$samplegroup, ".genefiltIndels.csv")
   )
 )
 
@@ -625,7 +623,7 @@ SNPdetails <- cbind(
 write_csv(
   SNPdetails,
   file.path(
-    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".csv")
+    varDir, paste0(argv$samplegroup, ".nonsynSNVs.csv")
   )
 )
 
@@ -642,8 +640,8 @@ write_csv(
   events.stats.df,
   file.path(
     varDir, paste0(
-      argv$samplegroup, critSamplesSom,
-      "plusstats.Qcrit", argv$QUALcrit, ".csv"
+      argv$samplegroup, ".snvs_indels_filt.",
+      critSamplesSom, "plus.Qcrit", argv$QUALcrit, "stats.csv"
     )
   )
 )
