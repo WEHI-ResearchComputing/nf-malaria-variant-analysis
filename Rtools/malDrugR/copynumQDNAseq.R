@@ -224,9 +224,9 @@ cn_seg_out <-
     chrom = str_remove(chrom, "[^_]+_") |> str_remove("_.*"),
     start = prettyNum(start, big.mark = ",") |> str_replace(",001$", "k"),
     end = prettyNum(end, big.mark = ",") |> str_replace(",000$", "k"),
-    Location = paste0(chrom, ":", start, "-", end)
+    `Genomic region` = paste0(chrom, ":", start, "-", end)
   ) |>
-  dplyr::select(Location, ends_with("_segCN")) |>
+  dplyr::select(`Genomic region`, ends_with("_segCN")) |>
   rename_with(~ str_remove(.x, "_segCN"))
 
 write_csv(

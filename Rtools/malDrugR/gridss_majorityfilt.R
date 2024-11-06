@@ -165,7 +165,7 @@ writeVcf(somEitherFilt,
          paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.vcf"))
 
 filtdf <- data.frame(
-  gridssID = rownames(somEitherFilt),
+  `GRIDSS ID` = rownames(somEitherFilt),
   seqname = seqnames(somEitherFilt),
   pos = start(somEitherFilt),
   REF = ref(somEitherFilt) |> unlist(),
@@ -176,7 +176,7 @@ filtdf <- data.frame(
       rename_with(~ paste0("QUAL_", .x)) |>
       round()
 ) |>
-    arrange(gridssID)
+    arrange(`GRIDSS ID`)
 write_csv(
   filtdf,
   file.path(paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.csv"))
