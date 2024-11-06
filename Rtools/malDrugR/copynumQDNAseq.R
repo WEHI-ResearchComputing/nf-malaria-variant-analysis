@@ -108,7 +108,7 @@ makePfBins <- function(bin_in_kbases) {
 
 ## Parent sample handled separately because many groups use the same parent
 parentcountsn <- file.path(
-  paste0("Counts", argv$bin_in_kbases, "k_", parentID, ".rds")
+  paste0(parentID, ".copynumCounts", argv$bin_in_kbases, "k.rds")
 )
 
 if (file.exists(parentcountsn)) {
@@ -128,8 +128,7 @@ if (file.exists(parentcountsn)) {
 
 ## Resistant samples
 countfilen <- paste0(
-  "Counts", argv$bin_in_kbases, "k_", groupId,
-  ".rds"
+  groupId, ".copynumCounts", argv$bin_in_kbases, "k.rds"
 )
 if (file.exists(file.path(countfilen))) {
   countsinbins <- readRDS(file.path(countfilen))
@@ -234,8 +233,8 @@ write_csv(
   cn_seg_out,
   file.path(
     paste0(
-      groupId, ".segmentedcalls_",
-      argv$bin_in_kbases, "k", ".csv"
+      groupId, ".copynum_segmentedcalls_",
+      argv$bin_in_kbases, "k.csv"
     )
   )
 )
@@ -277,7 +276,7 @@ saveRDS(
   CN_df,
   file.path(paste0(
     groupId, ".CN_df_",
-    argv$bin_in_kbases, "k", ".rds"
+    argv$bin_in_kbases, "k.rds"
   ))
 )
 scaled_df <- convertQDNAtoDF(StrainScaledByParents)
@@ -285,6 +284,6 @@ saveRDS(
   scaled_df,
   file.path(paste0(
     groupId, ".CN_compare_df_",
-    argv$bin_in_kbases, "k", ".rds"
+    argv$bin_in_kbases, "k.rds"
   ))
 )
