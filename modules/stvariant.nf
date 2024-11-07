@@ -35,13 +35,13 @@ process Gridss{
             path(bams),path(parentbams)
 
     output:
-    tuple val(groupId), path("${groupId}.bam"), emit: bam
-    tuple val(groupId), path("${groupId}.vcf"), emit: vcf
+    tuple val(groupId), path("${groupId}.GRIDSS.bam"), emit: bam
+    tuple val(groupId), path("${groupId}.GRIDSS.vcf"), emit: vcf
 
     script:
     """
     gridss --reference ${ref}.fasta  \
-    --jar ${params.gridss_jar_path} --assembly ${groupId}.bam  \
+    --jar ${params.gridss_jar_path} --assembly ${groupId}.GRIDSS.bam  \
     --workingdir . --threads ${task.cpus} --skipsoftcliprealignment \
     --output ${groupId}.GRIDSS.vcf  ${bamfilenames}
     
