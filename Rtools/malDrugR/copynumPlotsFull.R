@@ -117,7 +117,7 @@ plotset <- arrangeGrob(
         }),
     ncol = 1)
 
-ggsave( plotset, filename = file.path(paste0(groupId, "_copynums_", 
+ggsave( plotset, filename = file.path(paste0(groupId, ".copynums_", 
                     bin_in_kbases, "k.pdf") )
             , units = "mm", width = 297, height = 210 
         )

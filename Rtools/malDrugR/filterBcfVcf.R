@@ -227,9 +227,9 @@ somatic <- function(gt, pgt) {
 # ---------- Read vcf files, and filter --------------------------------
 #
 samplevcf <- tryCatch(
-  readVcf(paste0(argv$samplegroup, ".vcf")),
+  readVcf(paste0(argv$samplegroup, ".snvs_indels.vcf")),
   error = function(e) {
-    stop(paste(e, "Filepath:", paste0(argv$samplegroup, ".vcf")))
+    stop(paste(e, "Filepath:", paste0(argv$samplegroup, ".snvs_indels.vcf")))
   }
 )
 ## Filter
@@ -261,7 +261,10 @@ majsom <- eventFilt[
 writeVcf(
   majsom, file.path(
     varDir,
-    paste0(argv$samplegroup, critSamplesSom, "plus", ".Qcrit", argv$QUALcrit, ".vcf")
+    paste0(
+      argv$samplegroup, ".snvs_indels_filt.",
+      critSamplesSom, "plus.Qcrit", argv$QUALcrit, ".vcf"
+    )
   )
 )
 
@@ -269,13 +272,14 @@ writeVcf(
 ## indels in introns and UTRs are potentially of interest.
 ## Single nucleotide events are only interesting in CDS
 
-#### Non-synonymous SNPs in coding regions  ####
+#### Non-synonymous SNVs in coding regions  ####
 eventCDS <- findOverlaps(rowRanges(majsom), GRanges(CDSnoVar))
-snpCDS <- subset(
-    majsom[queryHits(eventCDS) |> unique() ],
-    !INDEL)
+snvCDS <- subset(
+  majsom[queryHits(eventCDS) |> unique()],
+  !INDEL
+)
 
-#### Read bam files to get allele counts of snpCDS positions ###
+#### Read bam files to get allele counts of snvCDS positions ###
 countalleles <- function(bamfile, vcf) {
   bamparams <- ScanBamParam(
     which = rowRanges(vcf),
@@ -335,7 +339,7 @@ altAF <- function(vcf) {
   GTparent <- geno(vcf)$GT[, parentlist] |>
     as.numeric() |>
     pmax()
-  names(GTparent) <- names(geno(vcf)$GT[, parentlist])
+  names(GTparent) <- rownames(geno(vcf)$GT)
   alldepths <- as.data.frame(geno(vcf)$AD) |>
     cbind(GTparent) |>
     rownames_to_column(var = "variant") |>
@@ -345,8 +349,11 @@ altAF <- function(vcf) {
       values_to = "AD"
     )
   alldepths$NewAltDepth <-
-    # Plus 2 because GT is 0-based; GTparent+1 is index of highest parent GT
-    apply(alldepths, 1, function(row) unlist(row$AD)[row$GTparent + 2])
+    apply(alldepths, 1, function(row) {
+      # find GT that is not ref (=0) or parent
+      newGT <- setdiff(seq(1, 4), row$GTparent) |> min()
+      unlist(row$AD)[newGT]
+    })
 
   newAF <- left_join(
     alldepths,
@@ -363,54 +370,60 @@ altAF <- function(vcf) {
   alts$variant <- names(vcf)
   alts$GTparent <- GTparent
   alts$ALTnew <-
-    apply(alts, 1, function(row) unlist(row$altDNA)[row$GTparent + 1])
+    apply(alts, 1, function(row) {
+      newGT <- setdiff(seq(1, 4), row$GTparent) |> min()
+      unlist(row$altDNA)[newGT]
+    })
 
   return(
     newAF |>
       dplyr::select(-AD, -NewAltDepth, -DP) |>
-      pivot_wider(names_from = SampleName, values_from = NewAltFrac,
-                  names_prefix = "AF_") |>
+      pivot_wider(
+        names_from = SampleName, values_from = NewAltFrac,
+        names_prefix = "AF_"
+      ) |>
       left_join(alts) |>
       dplyr::select(
-        variant, GTparent, ALTnew, 
+        variant, GTparent, ALTnew,
         all_of(paste0("AF_", c(parentlist, samplesOI)))
       )
   )
 }
 
 
-if (nrow(snpCDS) > 0) {
-  if (("AD" %in% rownames(geno(header(snpCDS))) &
-    "DP" %in% rownames(geno(header(snpCDS)))
-  )) { #### SNP allele counts from vcf geno fields
-    SNPalleleCounts <- altAF(snpCDS)
-  } else { #### SNP allele counts from bam files
-    SNPalleleCounts <- map(
+if (nrow(snvCDS) > 0) {
+  if (("AD" %in% rownames(geno(header(snvCDS))) &
+    "DP" %in% rownames(geno(header(snvCDS)))
+  )) { #### SNV allele counts from vcf geno fields
+    SNValleleCounts <- altAF(snvCDS)
+  } else { #### SNV allele counts from bam files
+    SNValleleCounts <- map(
       c(
         paste0(samplesOI, "_nodup.bam"),
         paste0(parentlist, "_nodup.bam")
       ),
       countalleles,
-      vcf = snpCDS
+      vcf = snvCDS
     ) |>
       list_rbind()
-    SNPalleleCounts |> mutate(
-        SNPalleleCounts,
+    SNValleleCounts |>
+      mutate(
+        SNValleleCounts,
         AltFrac = paste0(AltCount, "/", TotCount),
         TotCount = NULL, RefCount = NULL, AltCount = NULL
-    ) |>
-        pivot_wider(
-            names_from = c(SampleName),
-            values_from = c(AltFrac),
-            names_prefix = "AF_"
-        )
+      ) |>
+      pivot_wider(
+        names_from = c(SampleName),
+        values_from = c(AltFrac),
+        names_prefix = "AF_"
+      )
   }
 
-  if (nrow(SNPalleleCounts) > 1) {
-    SNPalleleCounts <- arrange(SNPalleleCounts, variant)
+  if (nrow(SNValleleCounts) > 1) {
+    SNValleleCounts <- arrange(SNValleleCounts, variant)
   }
 
-  #### Annotate SNPs ####
+  #### Annotate SNVs ####
   #### Load genome and transcript db
   transcriptdb <- file.path(
     refDir,
@@ -434,10 +447,10 @@ if (nrow(snpCDS) > 0) {
     pfg <- get(paste0("BSgenome.Pfalciparum", ref$strain, ".PlasmoDB.", ref$version))
   }
 
-  #### AA prediction for SNPs in CDS
-  AApred <- predictCoding(query = snpCDS, subject = txdb, seqSource = pfg)
+  #### AA prediction for SNVs in CDS
+  AApred <- predictCoding(query = snvCDS, subject = txdb, seqSource = pfg)
 
-  #### SNPs in same codon
+  #### SNVs in same codon
   mcols(AApred)$warning <- NA
   if (paste(AApred$CDSID, AApred$PROTEINLOC) |> unlist() |> n_distinct() <
     length(AApred)
@@ -452,39 +465,44 @@ if (nrow(snpCDS) > 0) {
   #### Remove synonymous ####
   AApred <- AApred[which(mcols(AApred)$CONSEQUENCE != "synonymous" |
     !is.na(mcols(AApred)$warning))]
-  nonsynSNP <-
+  ## Convert to data frame and round QUAL to integer
+  nonsynSNV <-
     cbind(
-      as_tibble(AApred) |> dplyr::select(-ALT),
+      as_tibble(AApred) |> mutate(
+        QUAL = round(QUAL),
+        ALT = NULL
+      ),
       data.frame(
-        SNP = names(AApred),
+        SNV = names(AApred),
         ALT = as.character(unlist(AApred$ALT)),
         AAchanges = with(
           AApred,
           paste0(REFAA, PROTEINLOC, VARAA)
         )
       )
-    ) |> dplyr::select(SNP, seqname=seqnames,
+    ) |> dplyr::select(SNV,
+      seqname = seqnames,
       pos = start, strand, REF, ALT, QUAL,
       AAchanges, REFCODON, VARCODON, warning
     )
 
-  if (all(is.na(nonsynSNP$warning))) {
-    nonsynSNP <- dplyr::select(nonsynSNP, !c(REFCODON, VARCODON, warning))
+  if (all(is.na(nonsynSNV$warning))) {
+    nonsynSNV <- dplyr::select(nonsynSNV, !c(REFCODON, VARCODON, warning))
   }
-  SNPdetails <- left_join(
-    nonsynSNP,
-    SNPalleleCounts,
-    by = join_by("SNP" == "variant")
+  SNVdetails <- left_join(
+    nonsynSNV,
+    SNValleleCounts,
+    by = join_by("SNV" == "variant")
   ) |>
-    dplyr::select(!SNP)
+    dplyr::select(!SNV)
 } else {
-  SNPdetails <- data.frame(
+  SNVdetails <- data.frame(
     seqname = factor(), Gene = character(), pos = integer()
   )
   AApred <- GRanges()
 }
 
-#### Get gene details for indels and non-synonymous SNPs ####
+#### Get gene details for indels and non-synonymous SNVs ####
 eventGene <- findOverlaps(rowRanges(majsom), GRanges(pf_featuresNovar),
   select = "last"
 )
@@ -497,10 +515,10 @@ if (nrow(indelGene) > 0) {
   ]
   #### Get Alt allele fractions for indels from geno fields if available ####
   #### Report AF for 1st ALT not in reference sample.
-  #### Function defined above in SNP allele counts
+  #### Function defined above in SNV allele counts
   if (("AD" %in% rownames(geno(header(indelGene))) &
     "DP" %in% rownames(geno(header(indelGene)))
-  )) { #### SNP allele counts from vcf geno fields
+  )) { #### SNV allele counts from vcf geno fields
     indels.AF <- altAF(indelGene)
   } else { #### no allele frequencies available
     indels.AF <- data.frame()
@@ -525,7 +543,7 @@ if (nrow(indelGene) > 0) {
   }) |>
     list_rbind()
   indels.Feat.df <- cbind(indels.Feat.df, geneDetail) |>
-    dplyr::select(-width, -strand, seqname=seqnames) |>
+    dplyr::select(-width, -strand, seqname = seqnames) |>
     mutate(
       Gene = case_when(
         is.na(GeneName) ~ Description |>
@@ -533,50 +551,42 @@ if (nrow(indelGene) > 0) {
         TRUE ~ GeneName
       ),
       ALT = CharacterList(ALT) |> unstrsplit(sep = ","),
+      QUAL = round(QUAL),
       GeneName = NULL, Description = NULL
     )
 } else {
   indels.Feat.df <- data.frame(Gene = character(), ALT = character())
-  indels.AF <- data.frame()
+  indels.AF <- data.frame(variant = character())
 }
 
-## Report indels in gene regions as 2 tables: gene details and allele fractions
+## Report indels in gene regions as single table
+INDELdetails <- cbind(indels.Feat.df, indels.AF) |>
+  dplyr::select(-variant) |>
+  relocate(starts_with("Gene"), .after = last_col())
+
+
 write_csv(
-  indels.Feat.df,
+  INDELdetails,
   file.path(
     varDir,
-    paste0(
-      argv$samplegroup,
-      "genefiltIndels.csv"
-    )
+    paste0(argv$samplegroup, ".genefiltIndels.csv")
   )
 )
 
-write_csv(
-  indels.AF,
-  file.path(
-    varDir,
-    paste0(
-      argv$samplegroup,
-      "AFfiltIndels.csv"
-    )
-  )
-)
-
-#### Get gene details for SNPs ####
-snpCDSAttr <- pf_featuresNovar[
+#### Get gene details for SNVs ####
+snvCDSAttr <- pf_featuresNovar[
   findOverlaps(GRanges(AApred), GRanges(pf_featuresNovar),
     select = "last"
   )
 ]
 
-snps.Feat.df <- data.frame(
+snvs.Feat.df <- data.frame(
   seqname = seqnames(AApred),
   pos = start(AApred),
-  GeneID = getGffAttribute(snpCDSAttr, "ID") |> unlist() |> unname()
+  GeneID = getGffAttribute(snvCDSAttr, "ID") |> unlist() |> unname()
 )
 baseIDEvents <- str_replace(
-  snps.Feat.df$GeneID, "^.*P", "P"
+  snvs.Feat.df$GeneID, "^.*P", "P"
 ) |>
   str_remove("[\\.\\-].*$")
 geneDetail <- map(baseIDEvents, function(ID) {
@@ -588,7 +598,7 @@ geneDetail <- map(baseIDEvents, function(ID) {
 }) |>
   list_rbind()
 if (nrow(geneDetail) > 0) {
-  snps.Feat.df <- cbind(snps.Feat.df, geneDetail) |>
+  snvs.Feat.df <- cbind(snvs.Feat.df, geneDetail) |>
     mutate(
       Gene = case_when(
         is.na(GeneName) ~ Description |>
@@ -600,19 +610,21 @@ if (nrow(geneDetail) > 0) {
 }
 
 ## sanity check before cbind:
-if(
-    !all.equal(SNPdetails$seqname, snps.Feat.df$seqname) |
-    !all.equal(SNPdetails$pos, snps.Feat.df$pos)
-) stop("Mismatch in join of SNP gene details")
+if (
+  !all.equal(SNVdetails$seqname, snvs.Feat.df$seqname) |
+    !all.equal(SNVdetails$pos, snvs.Feat.df$pos)
+) {
+  stop("Mismatch in join of SNV gene details")
+}
 
-SNPdetails <- cbind(
-  SNPdetails, snps.Feat.df |> dplyr::select(-seqname, -pos)
-) 
+SNVdetails <- cbind(
+  SNVdetails, snvs.Feat.df |> dplyr::select(-seqname, -pos)
+)
 
 write_csv(
-  SNPdetails,
+  SNVdetails,
   file.path(
-    varDir, paste0(argv$samplegroup, "nonsynSNPs", ".csv")
+    varDir, paste0(argv$samplegroup, ".nonsynSNVs.csv")
   )
 )
 
@@ -621,16 +633,16 @@ events.stats.df <- data.frame(
   initialnum = length(samplevcf),
   filtnum = length(eventFilt),
   majoritySom = length(majsom),
-  SNP_CDS = length(snpCDS),
-  SNP_nonsyn = length(AApred),
+  SNV_CDS = length(snvCDS),
+  SNV_nonsyn = length(AApred),
   Indel_gene = length(indelGene)
 )
 write_csv(
   events.stats.df,
   file.path(
     varDir, paste0(
-      argv$samplegroup, critSamplesSom,
-      "plusstats.Qcrit", argv$QUALcrit, ".csv"
+      argv$samplegroup, ".snvs_indels_filt.",
+      critSamplesSom, "plus.Qcrit", argv$QUALcrit, "stats.csv"
     )
   )
 )
