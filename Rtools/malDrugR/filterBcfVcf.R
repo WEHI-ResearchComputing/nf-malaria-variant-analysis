@@ -334,9 +334,16 @@ countalleles <- function(bamfile, vcf) {
 }
 
 #### Get Alt allele fractions for vcf records from added geno fields ####
-#### Report AF for 1st ALT not in reference sample
+#### Report AF for 1st ALT not in 1st reference sample. 
+## Warn if difference between reference samples.
 altAF <- function(vcf) {
-  GTparent <- geno(vcf)$GT[, parentlist] |>
+  parentsdiff <- as.data.frame(geno(vcf)$GT[, parentlist]) |>
+    rowwise() |>
+    transmute(nGT = length(unique(c_across(everything()))))
+  if (any(parentsdiff$nGT > 1)) warning(
+      "Parent samples have differing GT calls"
+    )
+  GTparent <- geno(vcf)$GT[, parentlist[1]] |>
     as.numeric() |>
     pmax()
   names(GTparent) <- rownames(geno(vcf)$GT)
@@ -350,9 +357,9 @@ altAF <- function(vcf) {
     )
   alldepths$NewAltDepth <-
     apply(alldepths, 1, function(row) {
-      # find GT that is not ref (=0) or parent
+      # find GT that is not ref (=0) or parent. Index is GT+1
       newGT <- setdiff(seq(1, 4), row$GTparent) |> min()
-      unlist(row$AD)[newGT]
+      unlist(row$AD)[newGT + 1]
     })
 
   newAF <- left_join(
@@ -372,7 +379,7 @@ altAF <- function(vcf) {
   alts$ALTnew <-
     apply(alts, 1, function(row) {
       newGT <- setdiff(seq(1, 4), row$GTparent) |> min()
-      unlist(row$altDNA)[newGT]
+      unlist(row$altDNA)[newGT] ## alts() does not include Ref so no 0 offset
     })
 
   return(
@@ -392,9 +399,10 @@ altAF <- function(vcf) {
 
 
 if (nrow(snvCDS) > 0) {
-  if (("AD" %in% rownames(geno(header(snvCDS))) &
-    "DP" %in% rownames(geno(header(snvCDS)))
-  )) { #### SNV allele counts from vcf geno fields
+  if (
+    "AD" %in% rownames(geno(header(snvCDS))) &
+      "DP" %in% rownames(geno(header(snvCDS)))
+  ) { #### SNV allele counts from vcf geno fields
     SNValleleCounts <- altAF(snvCDS)
   } else { #### SNV allele counts from bam files
     SNValleleCounts <- map(
@@ -406,7 +414,7 @@ if (nrow(snvCDS) > 0) {
       vcf = snvCDS
     ) |>
       list_rbind()
-    SNValleleCounts |>
+    SNValleleCounts <- SNValleleCounts |>
       mutate(
         SNValleleCounts,
         AltFrac = paste0(AltCount, "/", TotCount),
