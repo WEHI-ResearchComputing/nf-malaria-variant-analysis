@@ -115,15 +115,22 @@ if (is.na(argv$critsamplecount)) {
   critSamplesSom <- argv$critsamplecount
 }
 
-BQcrit <- 200
 Qcrit <- 200
-acceptableFilt <- c("PASS", "imprecise")
+acceptableFilt <-
+  c("PASS", "imprecise", "homlen", "ihomlen", "normalCoverage", "noAssembly")
 firstFiltname <- paste0(argv$samplegroup, ".SV_high_and_imprecise_somatic.vcf")
 
 AFcrit <- 0.15
 
-#### Filter by event has FILTER values in acceptable set ####
-passvcf <- VariantAnnotation::subset(somvcf, filt(somvcf) %in% acceptableFilt)
+#### Filter by event has all FILTER values in acceptable set ####
+passvcf <- somvcf[
+  sapply(
+    filt(somvcf),
+    function(ft) {
+      all(str_split_1(ft, ";") %in% acceptableFilt)
+    }
+  )
+]
 ## include mates
 passvcf <- VariantAnnotation::subset(
   somvcf, names(somvcf) %in% c(names(passvcf), na.omit(info(passvcf)$MATEID))
@@ -131,22 +138,27 @@ passvcf <- VariantAnnotation::subset(
 rm(somvcf)
 writeVcf(passvcf, firstFiltname)
 
-#### Filter by event is in 'majority' of samples and not parent ####
+#### Filter by event is in 'majority' of samples and not parents: ####
+#### 1. Quality of "breakend evidence after evidence reallocation" ####
+####    is above critical value for enough samples of interest.
+####    Accept either field with that definition
 majsom <- passvcf[
   apply(
-    geno(passvcf)$BQ, 1,
+    geno(passvcf)$QUAL, 1,
     function(Q) {
-      sum(Q[samplesOI] > BQcrit) >= critSamplesSom
+      sum(Q[samplesOI] > Qcrit) >= critSamplesSom
     }
-  ) &
+  ) |
     apply(
-      geno(passvcf)$QUAL, 1,
+      geno(passvcf)$BQ, 1,
       function(Q) {
         sum(Q[samplesOI] > Qcrit) >= critSamplesSom
       }
     )
 ]
 
+#### 2. AF is above critical value for enough samples of interest, ####
+####    and also greater than in parents
 somMinAF <- passvcf[
   apply(
     geno(passvcf)$AF, 1,
@@ -157,7 +169,7 @@ somMinAF <- passvcf[
   )
 ]
 
-#### Save the union of the 2 filters as vcf and summary table ####
+#### Save the union of the 2 filters as vcf ####
 somEitherFilt <- rbind(
   majsom, somMinAF
 ) |>
@@ -168,20 +180,25 @@ writeVcf(
   paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.vcf")
 )
 
+#### Save the intersection of the 2 filters as summary table ####
+somBothFilt <- somMinAF[intersect(names(majsom), names(somMinAF))]
+
 filtdf <- data.frame(
-  gridssID = rownames(somEitherFilt),
-  seqname = seqnames(somEitherFilt),
-  pos = start(somEitherFilt),
-  REF = ref(somEitherFilt) |> unlist(),
-  ALT = alt(somEitherFilt) |> unlist() |> str_trunc(width = 24, side = "right"),
-  as.data.frame(geno(somEitherFilt)$AF) |> unnest(cols = everything()) |>
+  gridssID = rownames(somBothFilt),
+  seqname = seqnames(somBothFilt),
+  pos = start(somBothFilt),
+  REF = ref(somBothFilt) |> unlist(),
+  ALT = alt(somBothFilt) |> unlist() |> str_trunc(width = 24, side = "right"),
+  as.data.frame(geno(somBothFilt)$AF) |> unnest(cols = everything()) |>
     rename_with(~ paste0("AF_", .x)),
-  as.data.frame(geno(somEitherFilt)$QUAL) |>
+  as.data.frame(
+      pmax(geno(somBothFilt)$QUAL, geno(somBothFilt)$BQ)
+           ) |>
     rename_with(~ paste0("QUAL_", .x)) |>
     round()
 ) |>
   arrange(gridssID)
 write_csv(
   filtdf |> dplyr::rename(`GRIDSS ID` = gridssID),
-  file.path(paste0(argv$samplegroup, ".SVs_somatic_by_QUALorAF.csv"))
+  file.path(paste0(argv$samplegroup, ".SVs_somatic_QUAL_AF.csv"))
 )
