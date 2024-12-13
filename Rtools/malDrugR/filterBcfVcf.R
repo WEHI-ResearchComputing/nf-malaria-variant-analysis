@@ -139,10 +139,13 @@ if (ref$strain == "3D7") { # haven't yet got this data for Dd2
         width = coreGenome$Size
       ) # specify all 3 as sanity check against bed-format confusion
     )
-    ## Extend 'core genome' to include mitochondrial
-    return(c(grCore, grPfalc[which(seqnames(grPfalc) == "Pf3D7_MIT_v3")]))
+    ## Extend 'core genome' to include non-nuclear and any Supp contigs
+    ## by returning also all seqnames not in core genome
+    return(c(grCore,
+             grPfalc[which(!seqnames(grPfalc) %in% seqnames(grCore))]
+             ))
   }
-  grCoreMT <- tryCatch(
+  grCoreExt <- tryCatch(
     getRegions(corepath),
     error = function(err) {
       warning(paste(
@@ -207,10 +210,10 @@ filt_vcf <- function(vcf, QUALcrit,
     })
   ]
 
-  ## Filter by: event is in core genome or mitochondria
+  ## Filter by: event is in core genome or non-nuclear
   if (ref$strain == "3D7") { # haven't yet got this data for Dd2
     vcf_posfilt <- vcf_somatic[
-      overlapsAny(vcf_somatic, grCoreMT)
+      overlapsAny(vcf_somatic, grCoreExt)
     ]
     return(vcf_posfilt)
   } else {
