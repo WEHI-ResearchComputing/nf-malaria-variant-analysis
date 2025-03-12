@@ -3,11 +3,6 @@
 ## then uses functions from QDNAseq to calculate read depths and copynumbers.
 ## A 'mappability file' is used for correcting the counts
 ##
-# Rscript ${projectDir}/bin/malDrugR/copynumQDNAseq.R \
-#    --samplegroup ${groupId} \
-#    --samplekeyfile ${samplekeyfile} \
-#    --groupkeyfile ${groupkeyfile} \
-#    --bin_in_kbases ${params.bin_in_kbases}
 #### Read command-line arguments ####
 library(argparser)
 argp <- arg_parser(paste(
@@ -23,17 +18,17 @@ argp <- add_argument(argp, "--parentId",
   help = "Parent ID of the group."
 )
 argp <- add_argument(argp, "--bams",
-  help = "file containing group info including short ID for parent."
+  help = "list of bamfilenames separated by spaces"
 )
 argp <- add_argument(argp, "--bin_in_kbases",
   default = "1",
   help = "bin size in kbp"
 )
 argp <- add_argument(argp, "--refDir",
-  help = "reference directory "
+  help = "path for binned reference and mappability files"
 )
 argp <- add_argument(argp, "--bsref",
-  help = "BS reference name to import library"
+  help = "BioStrings reference name to import library"
 )
 argv <- parse_args(argp)
 
@@ -126,7 +121,7 @@ if (file.exists(parentcountsn)) {
 }
 
 
-## Resistant samples
+## Samples of strain of interest
 countfilen <- paste0(
   groupId, ".copynumCounts", argv$bin_in_kbases, "k.rds"
 )
