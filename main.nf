@@ -13,38 +13,31 @@ println "Output directory   : $params.outdir                  "
 println "*****************************************************"
 
 // include modules
-include {  Bwa } from './modules/bwa.nf'
-include { WriteBamLists } from './modules/bwa.nf'
-include { Index } from './modules/bwa.nf'
-include { Merge } from './modules/bwa.nf'
-include { Bcf } from './modules/stvariant.nf'
-include { Gridss } from './modules/stvariant.nf'
-include { SomaticFilter } from './modules/stvariant.nf'
-include { RCopyNum } from './modules/stvariant.nf'
-include { InstallR } from './modules/stvariant.nf'
-include { FilterBcfVcf } from './modules/stvariant.nf'
-include { FilterGridssSV } from './modules/stvariant.nf'
-include { RPlotFull } from './modules/stvariant.nf'
-include { RPlotROI } from './modules/stvariant.nf'
+include {  Bwa;
+           WriteBamLists;
+           Index;
+           Merge 
+        } from './modules/bwa.nf'
 
-include{ FastQC } from './modules/qc.nf'
-include{ MosDepth } from './modules/qc.nf'
-include{ FlagStats } from './modules/qc.nf'
-include{ MultiQC } from './modules/qc.nf'
+include { Bcf;
+          Gridss;
+          SomaticFilter;
+          RCopyNum;
+          FilterBcfVcf;
+          FilterGridssSV;
+          RPlotFull;
+          RPlotROI
+        } from './modules/stvariant.nf'
 
-process foo {
-    debug true
-    input:
-    tuple val(sampleId), val(groupId),val(fastqbase),val(ref)
-    output:
-    stdout
 
-    script:
-    """
-    echo $sampleId , $groupId,$fastqbase,$ref
-    sleep 10
-    """
-}
+include{ 
+          FastQC;
+          MosDepth;
+          FlagStats;
+          MultiQC
+        } from './modules/qc.nf'
+
+include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
     //----------------Input Preparation-----------------------------------------
