@@ -188,15 +188,14 @@ filt_vcf <- function(vcf, QUALcrit,
               str_extract_all(., "") %>% unlist()
           )
           allAT <- !"G" %in% changeset & !"C" %in% changeset
-          # indel is contained in ref, or vice versa
-          containsAlt <- str_detect(vindel[1], vindel[2]) |
-            str_detect(vindel[2], vindel[1])
+          # both ref and alt are long, indicating repetitive  context
+          RefAltLong <- min(nchar(vindel)) > 6
           containsRun <- any(str_detect(
-            vindel, "AAAAAA|TTTTTT|ATATAT"
+            vindel, "AAAAAA|TTTTTT|ATATATATAT"
           ))
           ## Combined filter rule: keep only if short or complex
           max(nchar(vindel)) < 5 |
-            (!allAT & !containsRun & !containsAlt
+            (!allAT & !containsRun & !RefAltLong
             )
         }
       )
