@@ -88,8 +88,8 @@ idxGene2remove <- grepl(
   "PfEMP1|rifin|stevor|pseudogene",
   annotation(pf_features)$gffAttributes
 )
-nameGene2remove <- pf_features[idxGene2remove]$gffAttributes %>%
-  str_extract(., paste0("P[Ff]", ref$strain, "_[0-9]{7}")) %>%
+nameGene2remove <- pf_features[idxGene2remove]$gffAttributes |>
+  str_extract(paste0("P[Ff]", ref$strain, "_[0-9]{7}")) |>
   unique()
 ## None of these genes are on mitochondria (PfDd2_MT.* or PF3D7_MIT.*)
 idx2remove <- str_detect(
@@ -130,7 +130,7 @@ if (ref$strain == "3D7") { # haven't yet got this data for Dd2
       filep,
       delim = " ",
       col_types = "ciici"
-    ) %>% filter(Type == "Core")
+    ) |> filter(Type == "Core")
     grCore <- GRanges(
       seqnames = coreGenome$Chromosome,
       ranges = IRanges(
@@ -171,21 +171,17 @@ filt_vcf <- function(vcf, QUALcrit,
   vcf_ATfilt <- vcf_qualfilt[
     !info(vcf_qualfilt)$INDEL |
       sapply(
-        names(rowRanges(vcf_qualfilt)),
+        vcf_qualfilt,
         function(n) {
-          vindel <-
-            str_remove(
-              n, paste0("P[fF]", ref$strain, ".*[0-9]+_")
-            ) %>%
-            str_split_fixed(., "/", 2)
-          changeset <- union(
+          refchar <- ref(n) |> as.character()
+          altchar <- alt(n) |> unlist() |> as.character()
+          vindel <- c(refchar, altchar)
+          changeset <- unique(
             # remove 1st 'anchor' nucleotide
-            vindel[1] %>%
-              str_sub(2, -1) %>%
-              str_extract_all(., "") %>%
-              unlist(),
-            vindel[2] %>% str_sub(2, -1) %>%
-              str_extract_all(., "") %>% unlist()
+              vindel |>
+              str_sub(2, -1) |>
+              str_extract_all("") |>
+              unlist()
           )
           allAT <- !"G" %in% changeset & !"C" %in% changeset
           # both ref and alt are long, indicating repetitive  context
@@ -204,8 +200,8 @@ filt_vcf <- function(vcf, QUALcrit,
   ## that are not in the set of parent genotypes plus reference (GT 0).
   vcf_somatic <- vcf_ATfilt[
     apply(geno(vcf_ATfilt)$GT, 1, function(GT) {
-      setdiff(GT[samplesOI], c("0", ".", GT[parents])) %>%
-        length(.) > 0
+      setdiff(GT[samplesOI], c("0", ".", GT[parents])) |>
+        length() > 0
     })
   ]
 
