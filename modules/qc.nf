@@ -1,10 +1,12 @@
 process FastQC {
+
     label 'Fastqc' // assumes resources are defined in a label
-    tag "${sampleId}"
+    
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
     input:
     path(bams)
+    
     
     output:
     path("*.html"), emit: html
@@ -22,6 +24,7 @@ process MosDepth {
     tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
+
     input:
     tuple  val(sampleId), path(bam), path(bai)
 
@@ -37,12 +40,13 @@ process MosDepth {
 
 process FlagStats {
     label 'Flagstats'
+
     tag "${sampleId}"
     publishDir "${params.outdir}/QC", mode: 'copy'
     cache true
+
     input:
-    val(sampleId)
-    path(bam)
+    tuple val(sampleId), path(bam), path(bai)
 
     output:
     path("*.flagstats"), emit: txt
@@ -61,6 +65,7 @@ process MultiQC {
 
     input:
     path  multiqc_files, stageAs: "?/*" 
+    path(multiqc_config)
 
     output:
     path "*multiqc_report.html", emit: report

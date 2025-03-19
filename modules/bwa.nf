@@ -5,8 +5,9 @@ process Bwa {
     tag "${sampleId}"
     
     input:
-    tuple val(fastqbase), val(sampleId),val(groupId), val(ref),
-                path(fastqs)
+    tuple val(fastqbase), val(sampleId),
+            val(groupId), val(ref),
+            path(refpath), path(fastqs)
     
   
     output:
@@ -33,6 +34,7 @@ process Index {
     val sampleId
     tuple val(groupId), path("*_nodup.bam"), emit: bamnodup
     tuple val(groupId), path("*_nodup*bai"), emit: bai
+    tuple val(sampleId), path("*_nodup.bam"), path("*_nodup*bai"), emit: bysampleid
 
     script:
     """

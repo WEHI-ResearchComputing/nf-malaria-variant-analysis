@@ -13,38 +13,31 @@ println "Output directory   : $params.outdir                  "
 println "*****************************************************"
 
 // include modules
-include {  Bwa } from './modules/bwa.nf'
-include { WriteBamLists } from './modules/bwa.nf'
-include { Index } from './modules/bwa.nf'
-include { Merge } from './modules/bwa.nf'
-include { Bcf } from './modules/stvariant.nf'
-include { Gridss } from './modules/stvariant.nf'
-include { SomaticFilter } from './modules/stvariant.nf'
-include { RCopyNum } from './modules/stvariant.nf'
-include { InstallR } from './modules/stvariant.nf'
-include { FilterBcfVcf } from './modules/stvariant.nf'
-include { FilterGridssSV } from './modules/stvariant.nf'
-include { RPlotFull } from './modules/stvariant.nf'
-include { RPlotROI } from './modules/stvariant.nf'
+include {  Bwa;
+           WriteBamLists;
+           Index;
+           Merge 
+        } from './modules/bwa.nf'
 
-include{ FastQC } from './modules/qc.nf'
-include{ MosDepth } from './modules/qc.nf'
-include{ FlagStats } from './modules/qc.nf'
-include{ MultiQC } from './modules/qc.nf'
+include { Bcf;
+          Gridss;
+          SomaticFilter;
+          RCopyNum;
+          FilterBcfVcf;
+          FilterGridssSV;
+          RPlotFull;
+          RPlotROI
+        } from './modules/stvariant.nf'
 
-process foo {
-    debug true
-    input:
-    tuple val(sampleId), val(groupId),val(fastqbase),val(ref)
-    output:
-    stdout
 
-    script:
-    """
-    echo $sampleId , $groupId,$fastqbase,$ref
-    sleep 10
-    """
-}
+include{ 
+          FastQC;
+          MosDepth;
+          FlagStats;
+          MultiQC
+        } from './modules/qc.nf'
+
+include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
     //----------------Input Preparation-----------------------------------------
@@ -97,9 +90,9 @@ workflow {
             }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])}
             .set {fastq_input_channel}
 
-    input_ch.map{row -> tuple(row[2],row[1],row[0],row[5])}
+    input_ch.map{row -> tuple(row[2],row[1],row[0],row[5],row[6])}
                 .join(fastq_input_channel,by:0)
-                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref),path(fastqs)
+                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref),path(refpath),path(fastqs)
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
     //----------------Merge&List---------------------------------------
@@ -133,22 +126,24 @@ workflow {
     //----------------QC tools------------------------------------------
     //MultiQC integrates files from fastqc and mosdepth, found in input dir, into single report
     fastqc_ch=FastQC(bam_ch.bamnodup.map{row->row[1]}.unique({it.baseName}).collect())
-
-    mosdepth_ch=MosDepth(bam_ch.bamnodup.join(bam_ch.bai)) // join bams with their index based on groupId
-    flagstat_ch=FlagStats(bam_ch[0], bam_ch.bamnodup.map{row->row[1]})
     
-    MultiQC( fastqc_ch.zip.mix(mosdepth_ch, flagstat_ch).collect().ifEmpty([]) )  
+    // MosDepth Input Channel include val(sampleId), path(bam), path(bai)
+    mosdepth_ch=MosDepth(bam_ch.bysampleid) // join bams with their index based on groupId 
+    // FlagStats Input Channel include val(sampleId), path(bam)
+    flagstat_ch=FlagStats(bam_ch.bysampleid)  
+    
+    MultiQC( fastqc_ch.zip.mix(mosdepth_ch, flagstat_ch).collect().ifEmpty([]),Channel.fromPath(params.multiqc_config) )  
     //----------------BCF tools----------------------------------------
     //BCF Input Channel Emits parentId,groupId,ref,bamlist,bams,parentbams
-    input_ch.map{row -> tuple(row[0],row[4],row[5])}
+    input_ch.map{row -> tuple(row[0],row[4],row[5]+".fasta")}
             .unique()
             .join(bamlist_ch)
             .combine(bam_ch.bamnodup,by:0)
             .groupTuple(by:[0,1,2,3])
-            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch} // Emits val(parentId),val(groupId),val(ref), path(bamlist), path(bams),path(parentbams)
+            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch} // Emits val(parentId),val(groupId),path(ref), path(bamlist), path(bams),path(parentbams)
     bcf_ch=Bcf(bcf_input_ch)
     //----------------------Gridss------------------------------------- 
-    input_ch.map{row -> tuple(row[0],row[4],row[5])}
+    input_ch.map{row -> tuple(row[0],row[4],row[5]+".fasta")}
             .unique()
             .join(bamlist_ch.map{gid,filepath ->
                     def fileLines = filepath.readLines() 
@@ -163,8 +158,8 @@ workflow {
                 Input to gridss is empty.
                 """)
             }
-            .set{gridss_input_ch}// Emits val(parentId),val(groupId),val(ref), val(bamlistcontent), path(bams),path(parentbams)
-    gridss_ch=Gridss(gridss_input_ch)
+            .set{gridss_input_ch}// Emits val(parentId),val(groupId),path(ref), val(bamlistcontent), path(bams),path(parentbams)
+    gridss_ch=Gridss(gridss_input_ch,Channel.fromPath(params.gridss_jar_path))
     
     input_ch.map{row -> tuple(row[4], row[0],row[7] )}
             .unique()
@@ -172,7 +167,7 @@ workflow {
             .join(bamlist_ch).join(gridss_ch.vcf)
             .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf)
 
-    sfilter_ch=SomaticFilter(sv_input_ch)
+    sfilter_ch=SomaticFilter(sv_input_ch, Channel.fromPath("${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R"))
     //----------------------CopyNum--------------------------------------
     input_ch.map{row -> tuple(row[4], row[0],row[6],row[7] )}
             .unique()
@@ -190,10 +185,11 @@ workflow {
                 Input to CopyNum Analysis is empty.
                 """)
             }
-            .set{copynum_input_ch}//Emits val(groupId),val(parentId),val(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
+            .set{copynum_input_ch}//Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
     
     copynum_ch=RCopyNum(copynum_input_ch
                             .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
+                            .combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumQDNAseq.R"))
                         )
     //----------------------filter BCF----------------------------------- 
     input_ch.map{row -> tuple(row[4],row[0],row[6],row[3])}
@@ -208,11 +204,13 @@ workflow {
                 Input to filter is empty.
                 """)
             }
-            .set{fbcf_ch}   // Emits val(groupId),val(refpath),val(prefix),
+            .set{fbcf_ch}   // Emits val(groupId),path(refpath),val(prefix),
                             // path(parentbai),path(parentbam), val(parentbamlist), 
                             // path(vcf), 
                             // path(bams), path(bai), val(dummy)
-    FilterBcfVcf(fbcf_ch )            
+    FilterBcfVcf(fbcf_ch
+                        .combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/filterBcfVcf.R"))     
+    )       
     //----------------------GRIDSS filter----------------------------------- 
     input_ch.map{row -> tuple(row[0],row[4])}
             .unique()
@@ -220,14 +218,18 @@ workflow {
             .map{row->tuple(row[1],row[2])}
             .join(sfilter_ch.vcf)
             .set{gf_ch} // Emits val(groupId),val(parentlist), path(vcf), val(dummy)
-    FilterGridssSV(gf_ch)
+    FilterGridssSV(gf_ch
+                        .combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/gridss_majorityfilt.R"))
+                        .combine(Channel.fromPath("${projectDir}/Rtools/gridss_assets/"))
+        )
     //----------------------Plot-----------------------------------------
-    // Input Channel Emits val(groupId),val(parentId),val(refpath),val(prefix),path(rds)
+    // Input Channel Emits val(groupId),val(parentId),path(rds)
     input_ch.map{row -> tuple(row[0],row[4])}
             .unique()
             .join(copynum_ch.groupTuple().map{row-> tuple(row[0], row[1].flatten())},by:0).set{plot_ch}
-    RPlotFull(plot_ch)
-    RPlotROI(plot_ch)
+
+    RPlotFull(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsFull.R")))
+    RPlotROI(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsROI.R")))
     //-------------------------------------------------------------------
 }
 
