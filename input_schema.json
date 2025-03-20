@@ -4,11 +4,19 @@
     "items": {
       "type": "object",
       "properties": {
-        "groupId": { "type": "string" },
-        "sampleId": { "type": "string" },
-        "fastqbase": { "type": "string" },
-        "ref": { "type": "string" },
-        "parentId": { "type": "string" }
+      "groupId": {
+          
+          "description": "Group identifier",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+      },
+      "sampleId": {
+          "description": "Sample identifier that includes the group ID",
+          "pattern": "^([a-zA-Z0-9_-]+)$"
+      },
+      
+      "fastqbase": { "type": "string" },
+      "ref": { "type": "string" },
+      "parentId": { "type": "string" }
 
       }
     }
