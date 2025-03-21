@@ -18,6 +18,7 @@
       "ref": { "type": "string" },
       "parentId": { "type": "string" }
 
-      }
+      },
+      "required": ["groupId", "sampleId", "fastqbase", "ref", "parentId"]
     }
   }
