@@ -4,7 +4,7 @@ process Bcf{
     publishDir "${params.outdir}/variants/snvs_indels", mode: 'copy'
     cache true
     input:
-    tuple  val(parentId),val(groupId),val(ref),
+    tuple  val(parentId),val(groupId),path(ref),
             path(bamlist),
             path(bams),path(parentbams)
     
@@ -15,7 +15,7 @@ process Bcf{
     script:
     """
     bcftools mpileup -Ou --max-depth 800 --threads ${task.cpus}  \
-    -a AD,DP -f ${ref}.fasta  \
+    -a AD,DP -f ${ref}  \
     --bam-list ${bamlist}  | \
     bcftools call --ploidy 1 --threads ${task.cpus} -mv -Ov  \
     --output "${groupId}.snvs_indels.vcf" -
@@ -30,9 +30,10 @@ process Gridss{
     publishDir "${params.outdir}/variants/SVs", mode: 'copy'
 
     input:
-    tuple  val(parentId),val(groupId),val(ref),
+    tuple  val(parentId),val(groupId),path(ref),
             val(bamfilenames), 
             path(bams),path(parentbams)
+    path(jarfile)
 
     output:
     tuple val(groupId), path("${groupId}.GRIDSS.bam"), emit: bam
@@ -40,7 +41,7 @@ process Gridss{
 
     script:
     """
-    gridss --reference ${ref}.fasta  \
+    gridss --reference ${ref} \
     --jar ${params.gridss_jar_path} --assembly ${groupId}.GRIDSS.bam  \
     --workingdir . --threads ${task.cpus} --skipsoftcliprealignment \
     --output ${groupId}.GRIDSS.vcf  ${bamfilenames}
@@ -74,6 +75,7 @@ process SomaticFilter{
     tuple val(groupId),val(bsref),val(parentbamlist), 
             path(bamlist), 
             path(vcf)
+    path(script)
             
     output:
     tuple val(groupId),path("${groupId}.SV_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
@@ -86,7 +88,7 @@ process SomaticFilter{
     samplecount=\$(wc -l < ${groupId}_bams.txt)
     tumourordinals=\$(seq -s \' \' \$(expr \$parentcount + 1) \$samplecount)
    
-    Rscript --vanilla ${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R \
+    Rscript --vanilla ${script} \
         --input ${groupId}.GRIDSS.vcf \
         --fulloutput ${groupId}.SV_high_and_low_confidence_somatic.vcf \
         --scriptdir ${projectDir}/Rtools/gridss_assets/  ##\$(dirname \$(which gridss_somatic_filter))\
@@ -104,18 +106,18 @@ process RCopyNum {
     
     input:
    
-    tuple  val(groupId),val(parentId),val(refpath),val(bsref),
+    tuple  val(groupId),val(parentId),path(refpath),val(bsref),
             path(mergedparent), 
             val(bamfilenames), 
             path(bams), 
-            val(bins)
+            val(bins),path(script)
 
     output:
     tuple val(groupId), path("*.rds"), path("*.csv")
 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumQDNAseq.R \
+    Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bamfilenames}" \
@@ -133,9 +135,9 @@ process FilterBcfVcf {
     publishDir "${params.outdir}/variants/snvs_indels", mode: 'copy'
 
     input:
-    tuple  val(groupId),val(refpath),val(prefix),
+    tuple  val(groupId),path(refpath),val(prefix),
             path(parentbai),path(parentbam), val(parentbamlist), path(vcf), 
-            path(bams), path(bai)
+            path(bams), path(bai),path(script)
 
     output:
     path "*.csv", emit: csv 
@@ -143,7 +145,7 @@ process FilterBcfVcf {
 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/filterBcfVcf.R \
+    Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
@@ -161,15 +163,17 @@ process FilterGridssSV {
 
 
     input:
-    tuple  val(groupId),val(parentbamlist), path(vcf)
-    
+    tuple  val(groupId),val(parentbamlist), path(vcf),
+        path(script),
+        path(scriptdir)
+
     output:
     tuple val(groupId), path("${groupId}*.vcf"), emit: vcf
     tuple val(groupId), path("${groupId}*.csv"), emit: csv 
     script:
     """
     Rscript --vanilla ${projectDir}/Rtools/malDrugR/gridss_majorityfilt.R \
-        --scriptdir ${projectDir}/Rtools/gridss_assets/ \
+        --scriptdir ${scriptdir} \
         --samplegroup ${groupId} \
         --parentlist "${parentbamlist}" \
         --critsamplecount ${params.critsamplecount} 
@@ -185,14 +189,15 @@ process RPlotFull {
     
     input:
     tuple  val(groupId),val(parentId),
-            path(rds)
+            path(rds),path(script)
+
 
     output:
     tuple val(groupId), path("*copynums*.pdf")
 
     script:
     """
-    Rscript --vanilla ${projectDir}/Rtools/malDrugR/copynumPlotsFull.R \
+    Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bin_in_kbases ${params.bin_CNfull}  \
@@ -208,7 +213,7 @@ process RPlotROI {
     
     input:
     tuple  val(groupId),val(parentId),
-            path(rds)
+            path(rds),path(script)
 
     output:
     tuple val(groupId), path("*.pdf")
