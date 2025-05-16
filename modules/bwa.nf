@@ -1,3 +1,27 @@
+process LaneMerge {
+    label 'MergeFastqFiles'
+    
+    tag "${sampleId}"
+    
+    input:
+    tuple val(sampleId), path(fastqs)
+    
+    output:
+    tuple val(sampleId), path("*.fastq")
+    
+    script:
+    """
+    if (fastqs[0].toString() == ".*.gz$") {
+        gunzip -c '${fastqs[0]}' > ${sampleId}_R1.fastq
+        gunzip -c '${fastqs[1]}' > ${sampleId}_R2.fastq
+    } else {
+        cat '${fastqs[0]}' > ${sampleId}_R1.fastq
+        cat '${fastqs[1]}' > ${sampleId}_R2.fastq
+    }
+ 
+    """
+}
+
 process Bwa {
 
     label 'BWAAlign'
