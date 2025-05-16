@@ -193,7 +193,7 @@ process RPlotFull {
 
 
     output:
-    tuple val(groupId), path("*.pdf")
+    tuple val(groupId), path("*copynums*.pdf")
 
     script:
     """
