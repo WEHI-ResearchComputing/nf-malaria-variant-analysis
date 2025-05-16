@@ -19,6 +19,6 @@
       "parentId": { "type": "string" }
 
       },
-      "required": ["groupId", "sampleId", "fastqbase", "ref", "parentId"]
+      "required": ["groupId", "sampleId", "fastqbase", "ref"]
     }
   }
