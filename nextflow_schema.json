@@ -179,8 +179,8 @@
             "default": 36
         },
         "chr_CNroi": {
-            "type": "integer",
-            "default": 8
+            "type": "string",
+            "default": "08"
         },
         "start_CNroi": {
             "type": "integer",
