@@ -48,12 +48,12 @@ groupId <- argv$samplegroup
 ## Only CN scaled relative to parent used for zoomed-in plots
 scaled_df <- tryCatch(
   readRDS( paste0(groupId, ".CN_compare_df_",
-                  argv$bin_in_kbases, "k", ".rds")
+                  bin_in_kbases, "k", ".rds")
   ),
   error = function(e){
     stop(paste(e, "when reading copy number file",
                paste0(groupId, ".CN_compare_df_",
-                      argv$bin_in_kbases, "k", ".rds"))
+                      bin_in_kbases, "k", ".rds"))
     )
   }
 )
@@ -65,7 +65,7 @@ sampleL <- colnames( scaled_df )[which(
     str_remove( paste( ' vs.', parentId ) )
 
 #### Define functions ####
-
+samplecolrs <- colorRampPalette(RColorBrewer::brewer.pal(8, "Dark2"))(length(sampleL))
 plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
     bin_df$chrom <- sapply(bin_df$chrom, function(x){
         strsplit(x, split='_')[[1]][2] } ) # shorten chromosome names
@@ -73,7 +73,7 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
                             cols = !c("chrom", "range", "start", "end"), 
                             names_to = "sample", values_to = "copynum")
     chromOI$sample <-  sub(paste(" vs.", parentId), "", chromOI$sample)
-    # set undefined copynum (presumed 0/0) to 1, and mark with a different line-type
+    # set undefined copynum (presumed 0/0) to 1, and mark with a different shape
     chromOI$naCN <- is.na(chromOI$copynum)
     chromOI$copynum[is.na(chromOI$copynum)] <- 1  
     roi <- chromOI[which(chromOI$start > startkb*1000 & 
@@ -85,7 +85,7 @@ plotZoomedROI <- function(bin_df, startkb = 395, endkb = 435, chro = "08") {
       scale_shape_manual(values = c(19, 17)) +
       facet_grid(sample ~ ., scales = "free_y") + 
       theme(legend.position = "none") + 
-      scale_colour_brewer(palette="Dark2") + 
+      scale_colour_manual(values=samplecolrs) + 
       scale_y_continuous(limits=c(0, ymax),
                          breaks=seq(0, ymax, 2)) + 
       labs( x= paste( "Position in chromosome", chro, "(kb)" ),
@@ -98,12 +98,12 @@ panelplot <- plotZoomedROI(
   chro = ifelse( argv$chrOI %in% seq(1,9) |> as.character(),
                  ## check for single digit in chrom name
                  paste0("0", argv$chrOI),
-                argv$chrOI),
+                 argv$chrOI),
   startkb = argv$startROI,
   endkb = argv$endROI
 ) +
   labs(title = paste(
-    argv$bin_in_kbases, "kb copy numbers zoomed in on region of interest"
+    bin_in_kbases, "kb copy numbers zoomed in on region of interest"
   ))
 
 ggsave(
