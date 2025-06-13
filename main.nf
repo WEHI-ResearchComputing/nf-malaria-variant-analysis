@@ -92,7 +92,7 @@ workflow {
 
     input_ch.map{row -> tuple(row[2],row[1],row[0],row[5],row[6])}
                 .join(fastq_input_channel,by:0)
-                .set{bwa_input_ch}// Emits tuple val(sampleId),val(groupId), val(fastqbase),val(ref),path(refpath),path(fastqs)
+                .set{bwa_input_ch}// Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
     sam_ch=Bwa(bwa_input_ch)
     bam_ch=Index(sam_ch)
     //----------------Merge&List---------------------------------------
@@ -159,7 +159,7 @@ workflow {
                 """)
             }
             .set{gridss_input_ch}// Emits val(parentId),val(groupId),path(ref), val(bamlistcontent), path(bams),path(parentbams)
-    gridss_ch=Gridss(gridss_input_ch,Channel.fromPath(params.gridss_jar_path))
+    gridss_ch=Gridss(gridss_input_ch.combine(Channel.fromPath(params.gridss_jar_path)))
     
     input_ch.map{row -> tuple(row[4], row[0],row[7] )}
             .unique()
@@ -167,7 +167,8 @@ workflow {
             .join(bamlist_ch).join(gridss_ch.vcf)
             .set{sv_input_ch} //Emit val(groupId),val(bsref),val(parentbamlist), path(bamlist), path(vcf)
 
-    sfilter_ch=SomaticFilter(sv_input_ch, Channel.fromPath("${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R"))
+    sfilter_ch=SomaticFilter(sv_input_ch
+                                .combine(Channel.fromPath("${projectDir}/Rtools/gridss_assets/gridss_somatic_filter.R")))
     //----------------------CopyNum--------------------------------------
     input_ch.map{row -> tuple(row[4], row[0],row[6],row[7] )}
             .unique()
