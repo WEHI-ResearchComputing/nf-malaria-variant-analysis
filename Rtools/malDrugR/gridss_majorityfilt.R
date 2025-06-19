@@ -117,7 +117,7 @@ if (is.na(argv$critsamplecount)) {
 
 Qcrit <- 200
 acceptableFilt <-
-  c("PASS", "imprecise", "homlen", "ihomlen", "normalCoverage", "noAssembly")
+  c("PASS", "imprecise")
 firstFiltname <- paste0(argv$samplegroup, ".SV_high_and_imprecise_somatic.vcf")
 
 AFcrit <- 0.15
