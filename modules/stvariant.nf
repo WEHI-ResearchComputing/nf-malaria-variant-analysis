@@ -32,8 +32,7 @@ process Gridss{
     input:
     tuple  val(parentId),val(groupId),path(ref),
             val(bamfilenames), 
-            path(bams),path(parentbams)
-    path(jarfile)
+            path(bams),path(parentbams), path(jarfile)
 
     output:
     tuple val(groupId), path("${groupId}.GRIDSS.bam"), emit: bam
@@ -74,8 +73,7 @@ process SomaticFilter{
     input:
     tuple val(groupId),val(bsref),val(parentbamlist), 
             path(bamlist), 
-            path(vcf)
-    path(script)
+            path(vcf), path(script)
             
     output:
     tuple val(groupId),path("${groupId}.SV_high_and_low_confidence_somatic.vcf.bgz"), emit:vcf
