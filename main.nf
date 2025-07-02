@@ -27,7 +27,14 @@ include {
 } from './modules/qc.nf'
 
 include { validateParameters ; paramsSummaryLog ; samplesheetToList } from 'plugin/nf-schema'
+include { validateParameters ; paramsSummaryLog ; samplesheetToList } from 'plugin/nf-schema'
 
+def validateSampleIdContainsGroupId(List row) {
+        if (!row[1].toString().contains(row[0].toString())) {
+                error("Validation failed: sampleId '${row[1]}' does not contain groupId '${row[0]}'")
+        }
+        return row
+}
 workflow {
         println("*****************************************************")
         println("*  Nextflow Malaria Variant analysis pipeline       *")
@@ -42,6 +49,11 @@ workflow {
         println("Sample Group file  : ${params.input_file}              ")
         println("Output directory   : ${params.outdir}                  ")
         println("*****************************************************")
+
+        validateParameters()
+        // Create a new channel of metadata from a sample sheet passed to the pipeline through the --input parameter
+        Channel.fromList(samplesheetToList(params.input_file, "input_schema.json"))
+                .map { validateSampleIdContainsGroupId(it) }
 
         //----------------Input Preparation-----------------------------------------
         Channel.fromPath(params.input_file, checkIfExists: true)
