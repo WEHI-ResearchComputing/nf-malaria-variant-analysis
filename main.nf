@@ -234,15 +234,13 @@ workflow {
 
     RPlotFull(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsFull.R")))
     RPlotROI(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsROI.R")))
+    
     //----------------------List genes in a region of interest, if specified------
     // Input Channel emits val(groupId)
-    input_ch.map{row -> row[0]}.unique().set{genesROI_input_ch}
+    input_ch.map{row -> tuple(row[6],row[3])}.unique().set{genesROI_input_ch}
 
     if (params.genesRegion != "") 
       genesROI(genesROI_input_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/genesROI.R")))
     //-------------------------------------------------------------------
 }
-
-
-
 

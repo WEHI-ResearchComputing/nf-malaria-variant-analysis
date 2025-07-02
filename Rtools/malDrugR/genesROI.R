@@ -9,9 +9,6 @@ argp <- arg_parser(paste(
     "Use a reference genomic-features file (.gff)",
     "to find genes in a region of interest"
 ))
-argp <- add_argument(argp, "--samplegroup",
-                     help = "Group name of related samples"
-)
 argp <- add_argument(argp, "--refpath",
                      help = "file path of reference"
 )
@@ -73,4 +70,4 @@ data.frame(ID = getGffAttribute(geneROI, "ID"),
            Description = getGffAttribute(geneROI, "description") |>
                str_replace_all("\\+", " ")
 ) |>
-    write_csv(paste0(argv$samplegroup, "genes_chr", chrname, "_ROI.csv"))
+    write_csv(paste0("genes_chr", chrname, "_ROI.csv"))

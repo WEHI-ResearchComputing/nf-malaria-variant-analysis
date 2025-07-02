@@ -234,19 +234,17 @@ process genesROI {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  val(groupId),path(refpath),val(prefix),
-           val(geneRegion), path(script)
+    tuple  path(refpath),val(prefix)
 
     output:
-    tuple val(groupId), path("*.csv")
+    path("*.csv")
 
     script:
     """
     Rscript --vanilla ${projectDir}/Rtools/malDrugR/genesROI.R \
-        --samplegroup ${groupId} \
         --refpath ${refpath} \
         --refstrain ${prefix} \
-        --region ${params.geneRegion}
+        --region ${params.genesRegion}
     """
 }
 
