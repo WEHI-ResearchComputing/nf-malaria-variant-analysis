@@ -227,5 +227,27 @@ process RPlotROI {
         --endROI ${params.end_CNroi}
     """
 }
+process genesROI {
+    label 'Rfilter'    
+    tag "${groupId}"   
+    
+    publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
+    
+    input:
+    tuple  val(groupId),path(refpath),val(prefix),
+           val(geneRegion), path(script)
+
+    output:
+    tuple val(groupId), path("*.csv")
+
+    script:
+    """
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/genesROI.R \
+        --samplegroup ${groupId} \
+        --refpath ${refpath} \
+        --refstrain ${prefix} \
+        --region ${params.geneRegion}
+    """
+}
 
 
