@@ -174,19 +174,14 @@ workflow {
             .unique()
             .combine(merged_ch,by:0)
             .map{row -> if (row[0]) tuple(row[1],row[0],row[2],row[3],row[4])}
-            .join(bamlist_ch.map{gid,filepath ->
-                def fileLines = filepath.readLines() 
-                def fileContents = fileLines.join(' ') 
-                return tuple(gid, fileContents)  
-            })
             .combine(bam_ch.bamnodup,by:0)
-            .groupTuple(by:[0,1,2,3,4,5])
+            .groupTuple(by:[0,1,2,3,4])
             .ifEmpty {
                 error("""
                 Input to CopyNum Analysis is empty.
                 """)
             }
-            .set{copynum_input_ch}//Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
+            .set{copynum_input_ch}//Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bams), val(dummy)
     
     copynum_ch=RCopyNum(copynum_input_ch
                             .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))

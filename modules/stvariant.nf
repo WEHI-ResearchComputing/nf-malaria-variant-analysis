@@ -106,7 +106,6 @@ process RCopyNum {
    
     tuple  val(groupId),val(parentId),path(refpath),val(bsref),
             path(mergedparent), 
-            val(bamfilenames), 
             path(bams), 
             val(bins),path(script)
 
@@ -118,7 +117,7 @@ process RCopyNum {
     Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --bams "${bamfilenames}" \
+        --bams "${bams}" \
         --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}
