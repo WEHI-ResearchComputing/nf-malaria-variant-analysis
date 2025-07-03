@@ -118,7 +118,7 @@ process RCopyNum {
     Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --bams "${bamfilenames}" \
+        --bams "${bams}" \
         --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}

@@ -44,7 +44,7 @@ groupId <- argv$samplegroup
 parentID <- argv$parentId
 refDir <- argv$refDir
 groupbamL <- strsplit(argv$bams, " ")[[1]]
-groupbamL <- groupbamL[!grepl(parentID, groupbamL)]
+groupbamL <- groupbamL[!grepl(parentID, groupbamL)] # doesn't work for merged parents
 sampleL <- sub("_nodup\\.bam$", "", groupbamL)
 
 library(argv$bsref,
