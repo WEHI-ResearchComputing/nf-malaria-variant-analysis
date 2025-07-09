@@ -176,13 +176,8 @@ workflow {
             .unique()
             .combine(merged_ch,by:0)
             .map{row -> if (row[0]) tuple(row[1],row[0],row[2],row[3],row[4])}
-            .join(bamlist_ch.map{gid,filepath ->
-                def fileLines = filepath.readLines() 
-                def fileContents = fileLines.join(' ') 
-                return tuple(gid, fileContents)  
-            })
             .combine(bam_ch.bamnodup,by:0)
-            .groupTuple(by:[0,1,2,3,4,5])
+            .groupTuple(by:[0,1,2,3,4])
             .ifEmpty {
                 error("""
                 Input to CopyNum Analysis is empty.

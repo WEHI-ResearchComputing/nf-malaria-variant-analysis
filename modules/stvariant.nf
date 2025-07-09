@@ -106,7 +106,6 @@ process RCopyNum {
    
     tuple  val(groupId),val(parentId),path(refpath),val(bsref),
             path(mergedparent), 
-            val(bamfilenames), 
             path(bams), 
             val(bins),path(script)
 
