@@ -106,7 +106,6 @@ process RCopyNum {
    
     tuple  val(groupId),val(parentId),path(refpath),val(bsref),
             path(mergedparent), 
-            val(bamfilenames), 
             path(bams), 
             val(bins),path(script)
 
@@ -118,7 +117,7 @@ process RCopyNum {
     Rscript --vanilla ${script} \
         --samplegroup ${groupId} \
         --parentId ${parentId} \
-        --bams "${bamfilenames}" \
+        --bams "${bams}" \
         --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}
@@ -225,6 +224,26 @@ process RPlotROI {
         --chrOI ${params.chr_CNroi} \
         --startROI ${params.start_CNroi} \
         --endROI ${params.end_CNroi}
+    """
+}
+process genesROI {
+    label 'Rfilter'    
+    tag "${groupId}"   
+    
+    publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
+    
+    input:
+    tuple  path(refpath),val(prefix),path(script)
+
+    output:
+    path("*.csv")
+
+    script:
+    """
+    Rscript --vanilla ${projectDir}/Rtools/malDrugR/genesROI.R \
+        --refpath ${refpath} \
+        --refstrain ${prefix} \
+        --region "${params.genesRegion}"
     """
 }
 

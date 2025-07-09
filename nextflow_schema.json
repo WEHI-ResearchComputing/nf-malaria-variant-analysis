@@ -193,6 +193,10 @@
         "end_CNroi": {
             "type": "integer",
             "default": 435
+        },
+        "genesRegion": {
+            "type": "string",
+            "default: ""
         }
     },
     "required": [
