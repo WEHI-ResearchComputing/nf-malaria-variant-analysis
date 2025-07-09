@@ -1,3 +1,34 @@
+process LaneMerge {
+    label 'MergeFastqFiles'
+
+    tag "${sampleId}"
+
+    publishDir "${params.outdir}/merged_seqdata", mode: 'copy'
+
+    input:
+    tuple val(sampleId), path(R1fastqs), path(R2fastqs)
+
+    output:
+    tuple val(sampleId), path("*.fastq")
+
+    script:
+    """
+    zcat ${R1fastqs.join(' ')} > ${sampleId}_R1.fastq
+    zcat ${R2fastqs.join(' ')} > ${sampleId}_R2.fastq
+    #gzip ${sampleId}_R1.fastq
+    #gzip ${sampleId}_R2.fastq
+ 
+    """
+}
+
+// if (fastqs[0].toString() == ".*.gz\$") {
+    //     gunzip -c '${fastqs[0]}' > ${sampleId}_R1.fastq
+    //     gunzip -c '${fastqs[1]}' > ${sampleId}_R2.fastq
+    // } else {
+    //     cat '${fastqs[0]}' > ${sampleId}_R1.fastq
+    //     cat '${fastqs[1]}' > ${sampleId}_R2.fastq
+    // }
+
 process Bwa {
 
     label 'BWAAlign'

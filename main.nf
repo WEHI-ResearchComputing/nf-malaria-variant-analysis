@@ -1,123 +1,196 @@
-println "*****************************************************"
-println "*  Nextflow Malaria Variant analysis pipeline       *"
-println "*  A Nextflow wrapper pipeline                      *"
-println "*  Written by WEHI Research Computing Platform      *"
-println "*  research.computing@wehi.edu.au                   *"
-println "*                                                   *"
-println "*****************************************************"
-println " Required Pipeline parameters                        "
-println "-----------------------------------------------------"
-println "Input Sequence Path: $params.input_seq_path          "
-println "Sample Group file  : $params.input_file              "
-println "Output directory   : $params.outdir                  " 
-println "*****************************************************"
-
 // include modules
-include {  Bwa;
-           WriteBamLists;
-           Index;
-           Merge 
-        } from './modules/bwa.nf'
 
-include { Bcf;
-          Gridss;
-          SomaticFilter;
-          RCopyNum;
-          FilterBcfVcf;
-          FilterGridssSV;
-          RPlotFull;
-          RPlotROI;
-          genesROI
-        } from './modules/stvariant.nf'
+include {
+        LaneMerge ;
+        Bwa ;
+        WriteBamLists ;
+        Index ;
+        Merge
+} from './modules/bwa.nf'
+
+include {
+        Bcf ;
+        Gridss ;
+        SomaticFilter ;
+        RCopyNum ;
+        FilterBcfVcf ;
+        FilterGridssSV ;
+        RPlotFull ;
+        RPlotROI
+} from './modules/stvariant.nf'
 
 
-include{ 
-          FastQC;
-          MosDepth;
-          FlagStats;
-          MultiQC
-        } from './modules/qc.nf'
+include {
+        FastQC ;
+        MosDepth ;
+        FlagStats ;
+        MultiQC
+} from './modules/qc.nf'
 
-include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
+include { validateParameters ; paramsSummaryLog ; samplesheetToList } from 'plugin/nf-schema'
 
+def validateSampleIdContainsGroupId(List row) {
+        if (!row[1].toString().contains(row[0].toString())) {
+                error("Validation failed: sampleId '${row[1]}' does not contain groupId '${row[0]}'")
+        }
+        return row
+}
 workflow {
-    //----------------Input Preparation-----------------------------------------
-    Channel.fromPath(params.input_file,checkIfExists:true)
-    .ifEmpty{
-        error("""
+        println("*****************************************************")
+        println("*  Nextflow Malaria Variant analysis pipeline       *")
+        println("*  A Nextflow wrapper pipeline                      *")
+        println("*  Written by WEHI Research Computing Platform      *")
+        println("*  research.computing@wehi.edu.au                   *")
+        println("*                                                   *")
+        println("*****************************************************")
+        println(" Required Pipeline parameters                        ")
+        println("-----------------------------------------------------")
+        println("Input Sequence Path: ${params.input_seq_path}          ")
+        println("Sample Group file  : ${params.input_file}              ")
+        println("Output directory   : ${params.outdir}                  ")
+        println("*****************************************************")
+
+        validateParameters()
+        // Create a new channel of metadata from a sample sheet passed to the pipeline through the --input parameter
+        Channel.fromList(samplesheetToList(params.input_file, "input_schema.json"))
+                .map { validateSampleIdContainsGroupId(it) }
+
+        //----------------Input Preparation-----------------------------------------
+        Channel.fromPath(params.input_file, checkIfExists: true)
+                .ifEmpty {
+                        error(
+                                """
         No groups could be found in group key file! Please check your directory path
         is correct. 
-        """)
-    }
-    .splitCsv(header:true,sep:'\t')
-    .map{row ->
-        ref=""
-        refpath=""
-        bsref=""
-        if (row.ref =="3D7") {
-            ref=params.ref3D7_path+"/PlasmoDB-52_Pfalciparum3D7_Genome"
-            refpath=params.ref3D7_path
-            bsref="BSgenome.Pfalciparum3D7.PlasmoDB.52"
-        }        
-        else if (row.ref =="Dd2") {
-            ref=params.refDd2_path+"/PlasmoDB-57_PfalciparumDd2_Genome"
-            refpath=params.refDd2_path
-            bsref="BSgenome.PfalciparumDd2.PlasmoDB.57"
-        }
-        else if (row.ref =="Supp") {
-            ref=params.refSupp_path+"/PlasmoDB-52_Pfalciparum3D7_Genome_supplemented"
-            refpath=params.refSupp_path
-            bsref="BSgenome.PfalciparumNF54iGP"
-        }
-        return tuple(row.groupId,row.sampleId,row.fastqbase,row.ref, row.parentId,ref,refpath,bsref)
-    }
-    .set{input_ch} // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
-                   // 3->ref_prefix, 4->parentId, 5->ref (path+name)
-                   // 6->refpath , 7-> bsref
+        """
+                        )
+                }
+                .splitCsv(header: true, sep: '\t')
+                .map { row ->
+                        def ref = ""
+                        def refpath = ""
+                        def bsref = ""
+                        if (row.ref == "3D7") {
+                                ref = params.ref3D7_path + "/PlasmoDB-52_Pfalciparum3D7_Genome"
+                                refpath = params.ref3D7_path
+                                bsref = "BSgenome.Pfalciparum3D7.PlasmoDB.52"
+                        }
+                        else if (row.ref == "Dd2") {
+                                ref = params.refDd2_path + "/PlasmoDB-57_PfalciparumDd2_Genome"
+                                refpath = params.refDd2_path
+                                bsref = "BSgenome.PfalciparumDd2.PlasmoDB.57"
+                        }
+                        else if (row.ref == "Supp") {
+                                ref = params.refSupp_path + "/PlasmoDB-52_Pfalciparum3D7_Genome_supplemented"
+                                refpath = params.refSupp_path
+                                bsref = "BSgenome.PfalciparumNF54iGP"
+                        }
+                        return tuple(row.groupId, row.sampleId, row.fastqbase, row.ref, row.parentId, ref, refpath, bsref)
+                }
+                .set { input_ch }
+                // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
+                // 3->ref_prefix, 4->parentId, 5->ref (path+name)
+                // 6->refpath , 7-> bsref
 
-    //----------------Alignment-----------------------------------------
-    bamlist_ch=WriteBamLists(Channel.fromPath(params.input_file,checkIfExists:true))
-    bamlist_ch=bamlist_ch.flatten()
-                        .map{
-                                row -> tuple(row.baseName.split("_bams")[0],row)
-                            } // Emits groupID, bamslist.txt
-    Channel.fromFilePairs("${params.input_seq_path}/*_{,R}{1,2}*.{fq,fastq}{,.gz}", size: 2 )
-            .ifEmpty {
-                    error("""
+        //----------------Alignment-----------------------------------------
+        bamlist_ch = WriteBamLists(Channel.fromPath(params.input_file, checkIfExists: true))
+        bamlist_ch = bamlist_ch
+                .flatten()
+                .map { row ->
+                        tuple(row.baseName.split("_bams")[0], row)
+                }
+        // Emits groupID, bamslist.txt
+
+        if (params.merge_lanes) {
+                files_ch = input_ch
+                        .map { row ->
+                                def pattern = "${params.input_seq_path}/${row[1]}*_R1*"
+                                def files = file(pattern)
+
+                                // Handle case where no files match
+                                if (files.isEmpty()) {
+                                        log.warn("No files found matching pattern: ${pattern}")
+                                        return []
+                                }
+
+                                return tuple(row[2], files)
+                        }
+                        .map { row ->
+                                def pattern = "${params.input_seq_path}/${row[0]}*_R2*"
+                                def files = file(pattern)
+
+                                // Handle case where no files match
+                                if (files.isEmpty()) {
+                                        log.warn("No files found matching pattern: ${pattern}")
+                                        return []
+                                }
+
+                                return tuple(row[0], row[1], files)
+                        }
+                // Emits fastqbase, R1 files, R2 files
+
+                LaneMerge(files_ch).set { mergedfastqfiles }
+                // Emits 0->fastqbase, 2->[fastqs]
+                input_ch
+                        .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
+                        // Emits 0->sampleId, 2->[fastqs]
+                        .join(mergedfastqfiles, by: 0)
+                        .set { bwa_input_ch }
+                        // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
+        }
+        else {
+                Channel.fromFilePairs("${params.input_seq_path}/*_{,R}{1,2}*.{fq,fastq}{,.gz}", size: 2)
+                        .ifEmpty {
+                                error(
+                                        """
                     No samples could be found! Please check whether your input directory
                     is correct, and that your samples match typical fastq paired end naming
                     convention(s).
-                    """)
-            }.map{ row-> tuple(row[0].split(/_R[0-9]{1}/)[0],row[1])}
-            .set {fastq_input_channel}
+                    """
+                                )
+                        }
+                        .map { row -> tuple(row[0].split(/_R[0-9]{1}/)[0], row[1]) }
+                        .set { fastq_input_channel }
 
-    input_ch.map{row -> tuple(row[2],row[1],row[0],row[5],row[6])}
-                .join(fastq_input_channel,by:0)
-                .set{bwa_input_ch}// Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
-    sam_ch=Bwa(bwa_input_ch)
-    bam_ch=Index(sam_ch)
-    //----------------Merge&List---------------------------------------
-    input_ch.map{row -> row[4]}
-            .unique()
-            .combine(bam_ch.bamnodup,by:0)
-            .map{row -> tuple(row[0],row[1], row[1].baseName+".bam")
-            }.groupTuple()
-            .map{row -> 
-                    tuple(row[0],row[1], row[2].join(" "))
-            }
-            .ifEmpty {
-                    error("""
+                input_ch
+                        .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
+                        .join(fastq_input_channel, by: 0)
+                        .set { bwa_input_ch }
+                        // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
+        }
+        sam_ch = Bwa(bwa_input_ch)
+        bam_ch = Index(sam_ch)
+        //----------------Merge&List---------------------------------------
+        input_ch
+                .map { row -> row[4] }
+                .unique()
+                .combine(bam_ch.bamnodup, by: 0)
+                .map { row ->
+                        tuple(row[0], row[1], row[1].baseName + ".bam")
+                }
+                .groupTuple()
+                .map { row ->
+                        tuple(row[0], row[1], row[2].join(" "))
+                }
+                .ifEmpty {
+                        error(
+                                """
                     No parent samples found.
-                    """)
-            }
-            .set{parent_ch} // Emits tuple val(parentId),path(bams), val(parentlist)
-    
-    input_ch.map{row -> row[4]}
-            .unique().combine(bam_ch.bai,by:0)
-            .groupTuple()
-            .join(parent_ch)
-            .ifEmpty {
-                    error("""
+                    """
+                        )
+                }
+                .set { parent_ch }
+        // Emits tuple val(parentId),path(bams), val(parentlist)
+
+        input_ch
+                .map { row -> row[4] }
+                .unique()
+                .combine(bam_ch.bai, by: 0)
+                .groupTuple()
+                .join(parent_ch)
+                .ifEmpty {
+                        error(
+                                """
                     No parent samples found.
                     """)
             }
@@ -238,4 +311,3 @@ workflow {
       genesROI(genesROI_input_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/genesROI.R")))
     //-------------------------------------------------------------------
 }
-

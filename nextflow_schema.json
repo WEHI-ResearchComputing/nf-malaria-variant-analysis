@@ -1,10 +1,10 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/./master/nextflow_schema.json",
     "title": ". pipeline parameters",
     "description": "",
     "type": "object",
-    "definitions": {
+    "$defs": {
         "input_output_options": {
             "title": "Input/output options",
             "type": "object",
@@ -30,6 +30,10 @@
                 "input_file": {
                     "type": "string",
                     "default": "/stornext/Bioinf/data/bioinf-data/Papenfuss_lab/projects/malaria/cowman_lab/drug_resistance/MK7602humanchallenge/samplegroups.txt"
+                },
+                "merge_lanes": {
+                    "type": "boolean",
+                    "default": "true"
                 }
             }
         },
@@ -133,19 +137,19 @@
     },
     "allOf": [
         {
-            "$ref": "#/definitions/input_output_options"
+            "$ref": "#/$defs/input_output_options"
         },
         {
-            "$ref": "#/definitions/institutional_config_options"
+            "$ref": "#/$defs/institutional_config_options"
         },
         {
-            "$ref": "#/definitions/generic_options"
+            "$ref": "#/$defs/generic_options"
         },
         {
-            "$ref": "#/definitions/max_job_request_options"
+            "$ref": "#/$defs/max_job_request_options"
         },
         {
-            "$ref": "#/definitions/reference"
+            "$ref": "#/$defs/reference"
         }
     ],
     "properties": {
