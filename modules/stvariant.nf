@@ -234,7 +234,7 @@ process genesROI {
     publishDir "${params.outdir}/variants/copynumPlots", mode: 'copy'
     
     input:
-    tuple  path(refpath),val(prefix)
+    tuple  path(refpath),val(prefix),path(script)
 
     output:
     path("*.csv")
@@ -244,7 +244,7 @@ process genesROI {
     Rscript --vanilla ${projectDir}/Rtools/malDrugR/genesROI.R \
         --refpath ${refpath} \
         --refstrain ${prefix} \
-        --region ${params.genesRegion}
+        --region "${params.genesRegion}"
     """
 }
 

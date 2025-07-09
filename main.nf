@@ -236,7 +236,7 @@ workflow {
     RPlotROI(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsROI.R")))
     
     //----------------------List genes in a region of interest, if specified------
-    // Input Channel emits val(groupId)
+    // Input Channel emits path(refpath), val(ref_prefix)
     input_ch.map{row -> tuple(row[6],row[3])}.unique().set{genesROI_input_ch}
 
     if (params.genesRegion != "") 
