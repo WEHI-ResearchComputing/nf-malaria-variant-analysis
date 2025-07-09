@@ -26,7 +26,8 @@ include { Bcf;
           FilterBcfVcf;
           FilterGridssSV;
           RPlotFull;
-          RPlotROI
+          RPlotROI;
+          genesROI
         } from './modules/stvariant.nf'
 
 
@@ -140,7 +141,8 @@ workflow {
             .join(bamlist_ch)
             .combine(bam_ch.bamnodup,by:0)
             .groupTuple(by:[0,1,2,3])
-            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch} // Emits val(parentId),val(groupId),path(ref), path(bamlist), path(bams),path(parentbams)
+            .combine(parent_ch.map{row->tuple(row[1],row[0])},by:1).set{bcf_input_ch}
+               // Emits val(parentId),val(groupId),path(ref), path(bamlist), path(bams),path(parentbams)
     bcf_ch=Bcf(bcf_input_ch)
     //----------------------Gridss------------------------------------- 
     input_ch.map{row -> tuple(row[0],row[4],row[5]+".fasta")}
@@ -181,7 +183,8 @@ workflow {
                 Input to CopyNum Analysis is empty.
                 """)
             }
-            .set{copynum_input_ch}//Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bams), val(dummy)
+            .set{copynum_input_ch}
+              //Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
     
     copynum_ch=RCopyNum(copynum_input_ch
                             .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
@@ -218,7 +221,7 @@ workflow {
                         .combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/gridss_majorityfilt.R"))
                         .combine(Channel.fromPath("${projectDir}/Rtools/gridss_assets/"))
         )
-    //----------------------Plot-----------------------------------------
+    //----------------------Plot CopyNums-----------------------------------------
     // Input Channel Emits val(groupId),val(parentId),path(rds)
     input_ch.map{row -> tuple(row[0],row[4])}
             .unique()
@@ -226,9 +229,13 @@ workflow {
 
     RPlotFull(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsFull.R")))
     RPlotROI(plot_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumPlotsROI.R")))
+    
+    //----------------------List genes in a region of interest, if specified------
+    // Input Channel emits path(refpath), val(ref_prefix)
+    input_ch.map{row -> tuple(row[6],row[3])}.unique().set{genesROI_input_ch}
+
+    if (params.genesRegion != "") 
+      genesROI(genesROI_input_ch.combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/genesROI.R")))
     //-------------------------------------------------------------------
 }
-
-
-
 
