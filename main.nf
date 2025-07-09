@@ -27,7 +27,6 @@ include {
 } from './modules/qc.nf'
 
 include { validateParameters ; paramsSummaryLog ; samplesheetToList } from 'plugin/nf-schema'
-include { validateParameters ; paramsSummaryLog ; samplesheetToList } from 'plugin/nf-schema'
 
 def validateSampleIdContainsGroupId(List row) {
         if (!row[1].toString().contains(row[0].toString())) {
@@ -88,9 +87,9 @@ workflow {
                         return tuple(row.groupId, row.sampleId, row.fastqbase, row.ref, row.parentId, ref, refpath, bsref)
                 }
                 .set { input_ch }
-        // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
-        // 3->ref_prefix, 4->parentId, 5->ref (path+name)
-        // 6->refpath , 7-> bsref
+                // Emits 0->groupId,	1->sampleId, 2->fastqbase,	
+                // 3->ref_prefix, 4->parentId, 5->ref (path+name)
+                // 6->refpath , 7-> bsref
 
         //----------------Alignment-----------------------------------------
         bamlist_ch = WriteBamLists(Channel.fromPath(params.input_file, checkIfExists: true))
@@ -100,24 +99,64 @@ workflow {
                         tuple(row.baseName.split("_bams")[0], row)
                 }
         // Emits groupID, bamslist.txt
-        Channel.fromFilePairs("${params.input_seq_path}/*_{,R}{1,2}*.{fq,fastq}{,.gz}", size: 2)
-                .ifEmpty {
-                        error(
-                                """
+
+        if (params.merge_lanes) {
+                files_ch = input_ch
+                        .map { row ->
+                                def pattern = "${params.input_seq_path}/${row[1]}*_R1*"
+                                def files = file(pattern)
+
+                                // Handle case where no files match
+                                if (files.isEmpty()) {
+                                        log.warn("No files found matching pattern: ${pattern}")
+                                        return []
+                                }
+
+                                return tuple(row[2], files)
+                        }
+                        .map { row ->
+                                def pattern = "${params.input_seq_path}/${row[0]}*_R2*"
+                                def files = file(pattern)
+
+                                // Handle case where no files match
+                                if (files.isEmpty()) {
+                                        log.warn("No files found matching pattern: ${pattern}")
+                                        return []
+                                }
+
+                                return tuple(row[0], row[1], files)
+                        }
+                // Emits fastqbase, R1 files, R2 files
+
+                LaneMerge(files_ch).set { mergedfastqfiles }
+                // Emits 0->fastqbase, 2->[fastqs]
+                input_ch
+                        .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
+                        // Emits 0->sampleId, 2->[fastqs]
+                        .join(mergedfastqfiles, by: 0)
+                        .set { bwa_input_ch }
+                        // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
+        }
+        else {
+                Channel.fromFilePairs("${params.input_seq_path}/*_{,R}{1,2}*.{fq,fastq}{,.gz}", size: 2)
+                        .ifEmpty {
+                                error(
+                                        """
                     No samples could be found! Please check whether your input directory
                     is correct, and that your samples match typical fastq paired end naming
                     convention(s).
                     """
-                        )
-                }
-                .map { row -> tuple(row[0].split(/_R[0-9]{1}/)[0], row[1]) }
-                .set { fastq_input_channel }
+                                )
+                        }
+                        .map { row -> tuple(row[0].split(/_R[0-9]{1}/)[0], row[1]) }
+                        .set { fastq_input_channel }
 
-        input_ch
-                .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
-                .join(fastq_input_channel, by: 0)
-                .set { bwa_input_ch }
-        // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
+                input_ch
+                        .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
+                        .join(fastq_input_channel, by: 0)
+                        .set { bwa_input_ch }
+                        // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
+        }
         sam_ch = Bwa(bwa_input_ch)
         bam_ch = Index(sam_ch)
         //----------------Merge&List---------------------------------------
@@ -248,6 +287,7 @@ workflow {
                         )
                 }
                 .set { copynum_input_ch }
+        copynum_input_ch.view()
         //Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
 
         copynum_ch = RCopyNum(
