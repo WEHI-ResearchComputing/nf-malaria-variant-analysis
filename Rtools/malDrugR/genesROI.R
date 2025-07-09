@@ -27,7 +27,7 @@ pfCurrRefs <- data.frame(
     strain = c("3D7", "Dd2", "Supp"),
     version = c("52", "57", "52")
 )
-ref <- filter(pfCurrRefs, strain == argv$refstrain)
+ref <- dplyr::filter(pfCurrRefs, strain == argv$refstrain)
 ## Not looking for regions of interest in supplementary sequences yet
 
 # ---------- Read genomic features --------------------------------------------
@@ -48,9 +48,9 @@ pf_features <- tryCatch(
 # ---------- Find features in region of interest ------------------------------
 chrname <- str_remove(argv$region, ":.+")
 gstart <- str_remove(argv$region, ".+:") |>
-    str_remove("-.+")
+    str_remove("-.+") |> as.numeric()
 gend <- str_remove(argv$region, ".+:") |>
-    str_remove(".+-")
+    str_remove(".+-") |> as.numeric()
 roigr <- GRanges(
     seqnames = levels(seqnames(pf_features)) |>
         str_subset(paste0("Pf", ref$strain, "_", chrname)),
