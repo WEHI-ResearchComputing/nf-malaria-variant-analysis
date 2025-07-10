@@ -18,7 +18,10 @@ argp <- add_argument(argp, "--parentId",
   help = "Parent ID of the group."
 )
 argp <- add_argument(argp, "--bams",
-  help = "list of bamfilenames separated by spaces"
+  help = "list of sample bamfile paths separated by spaces"
+)
+argp <- add_argument(argp, "--parentbam",
+                     help = "path of parent bamfile"
 )
 argp <- add_argument(argp, "--bin_in_kbases",
   default = "1",
@@ -43,8 +46,8 @@ suppressPackageStartupMessages(library(devtools))
 groupId <- argv$samplegroup
 parentID <- argv$parentId
 refDir <- argv$refDir
+parentbam <- argv$parentbam
 groupbamL <- strsplit(argv$bams, " ")[[1]]
-groupbamL <- groupbamL[!grepl(parentID, groupbamL)] # doesn't work for merged parents
 sampleL <- sub("_nodup\\.bam$", "", groupbamL)
 
 library(argv$bsref,
@@ -114,7 +117,7 @@ if (file.exists(parentcountsn)) {
   }
   counts_parents <- binReadCounts(
     bins = pfBins,
-    bamfiles = c(file.path(paste0(parentID, ".bam"))),
+    bamfiles = parentbam,
     bamnames = parentID
   )
   saveRDS(counts_parents, parentcountsn)
