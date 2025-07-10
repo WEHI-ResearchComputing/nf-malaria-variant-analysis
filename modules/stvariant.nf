@@ -118,6 +118,7 @@ process RCopyNum {
         --samplegroup ${groupId} \
         --parentId ${parentId} \
         --bams "${bams}" \
+        --parentbam ${mergedparent} \
         --bin_in_kbases ${bins} \
         --refDir ${refpath}\
         --bsref ${bsref}

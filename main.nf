@@ -16,7 +16,8 @@ include {
         FilterBcfVcf ;
         FilterGridssSV ;
         RPlotFull ;
-        RPlotROI
+        RPlotROI ;
+        genesROI
 } from './modules/stvariant.nf'
 
 
@@ -256,9 +257,8 @@ workflow {
                 Input to CopyNum Analysis is empty.
                 """)
             }
-            .set{copynum_input_ch}
-              //Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bamlistcontent), path(bams), val(dummy)
-    
+            .set{copynum_input_ch}//Emits val(groupId),val(parentId),path(refpath),val(bsref),path(mergedparent), path(bams)
+
     copynum_ch=RCopyNum(copynum_input_ch
                             .combine(Channel.fromList( [params.bin_CNroi, params.bin_CNfull] ))
                             .combine(Channel.fromPath("${projectDir}/Rtools/malDrugR/copynumQDNAseq.R"))
