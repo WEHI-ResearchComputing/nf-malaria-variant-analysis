@@ -12,8 +12,9 @@ process LaneMerge {
 
     script:
     """
-    zcat ${R1fastqs.join(' ')} > ${fastqbase}_R1.fastq
-    zcat ${R2fastqs.join(' ')} > ${fastqbase}_R2.fastq
+    mergefastqbase=\$( basename ${fastqbase} )
+    zcat ${R1fastqs.join(' ')} > \${mergefastqbase}_R1.fastq
+    zcat ${R2fastqs.join(' ')} > \${mergefastqbase}_R2.fastq
     """
 }
 
