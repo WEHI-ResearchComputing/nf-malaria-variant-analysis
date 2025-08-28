@@ -105,20 +105,18 @@ workflow {
         if (params.merge_lanes) {
                 files_ch = input_ch
                         .map { row ->
-                                def pattern = "${params.input_seq_path}/${row[1]}*_R1*"
-                                def files = file(pattern)
-
+                                def pattern = "${params.input_seq_path}/${row[2]}*_R1*"
+                                def files = file("${pattern}")
                                 // Handle case where no files match
                                 if (files.isEmpty()) {
                                         log.warn("No files found matching pattern: ${pattern}")
                                         return []
                                 }
-
-                                return tuple(row[2], files)
+                                return tuple(row[2], files) // fastqbase, R1 file paths
                         }
                         .map { row ->
                                 def pattern = "${params.input_seq_path}/${row[0]}*_R2*"
-                                def files = file(pattern)
+                                def files = file("${pattern}")
 
                                 // Handle case where no files match
                                 if (files.isEmpty()) {
@@ -134,7 +132,6 @@ workflow {
                 // Emits 0->fastqbase, 2->[fastqs]
                 input_ch
                         .map { row -> tuple(row[2], row[1], row[0], row[5], row[6]) }
-                        // Emits 0->sampleId, 2->[fastqs]
                         .join(mergedfastqfiles, by: 0)
                         .set { bwa_input_ch }
                         // Emits tuple val(fastqbase), val(sampleId),val(groupId),val(ref),path(refpath),path(fastqs)
