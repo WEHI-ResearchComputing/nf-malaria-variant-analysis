@@ -196,7 +196,7 @@
         },
         "genesRegion": {
             "type": "string",
-            "default: ""
+            "default": ""
         }
     },
     "required": [
