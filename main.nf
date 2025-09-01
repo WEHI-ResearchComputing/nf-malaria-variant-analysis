@@ -18,7 +18,7 @@ include {
         RPlotFull ;
         RPlotROI ;
         genesROI
-} from './modules/stvariant.nf'
+} from './modules/variants.nf'
 
 
 include {
