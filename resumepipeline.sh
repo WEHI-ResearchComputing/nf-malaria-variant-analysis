@@ -4,4 +4,4 @@ echo E.g. ./resumepipeline \'sad_nobel -c path-to-task-config\'
 
 module purge
 module load nextflow/25.04.2
-nextflow run main.nf -profile apptainer -resume $1
+nextflow run main.nf -ansi-log false -profile apptainer -resume $1
