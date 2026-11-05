@@ -1,8 +1,8 @@
 FROM continuumio/miniconda3:24.3.0-0
 
 # install R4.4 from r repos since conda doesn't yet have 4.4
-RUN apt-get update && apt-get install gpg -y
-RUN echo "deb http://cloud.r-project.org/bin/linux/debian bullseye-cran40/" >> /etc/apt/sources.list && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B8F25A8A73EACF41 && apt-get update && apt-get install r-base-dev -y && apt-get clean
+RUN apt-get update && apt-get install gnupg -y
+RUN echo apt-get update && apt-get install r-base-dev -y && apt-get clean
 
 # install R package external dependencies
 RUN apt-get install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcurl4-openssl-dev libssl-dev libwebp-dev pkg-config -y && apt-get clean
