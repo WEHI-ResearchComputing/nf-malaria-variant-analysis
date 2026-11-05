@@ -1,11 +1,7 @@
-FROM continuumio/miniconda3:24.3.0-0
-
-# install R4.4 from r repos since conda doesn't yet have 4.4
-RUN apt-get update && apt-get install gnupg -y
-RUN echo apt-get update && apt-get install r-base-dev -y && apt-get clean
+FROM continuumio/miniconda3:26.7.1
 
 # install R package external dependencies
-RUN apt-get install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcurl4-openssl-dev libssl-dev libwebp-dev pkg-config -y && apt-get clean
+RUN apt-get update && apt-get install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcurl4-openssl-dev libssl-dev libwebp-dev pkg-config gnupg r-base-dev -y && apt-get clean
 # install R + bioconductor packages
 RUN MAKE="make -j" Rscript -e 'install.packages(c("BiocManager", "devtools", "tidyverse", "argparser", "stringr", "readr", "scales", "gridExtra", "stringdist", "R6", "ggplot2"), repos="https://cloud.r-project.org/")'
 RUN MAKE="make -j" Rscript -e 'BiocManager::install(c("biobase", "biocparallel", "QDNAseq", "VariantAnnotation", "GenomeInfoDb", "SparseArray", "GenomicAlignments", "genomeIntervals", "StructuralVariantAnnotation", "rtracklayer")); devtools::install_github("Bioconductor/BSgenome@e89b08b590039643f8fe9f030c1948233de4f50f")'
