@@ -17,7 +17,7 @@ argp <- add_argument(argp, "--refstrain",
 )
 argp <- add_argument(argp, "--region",
                      type = "character",
-                     help = "Regions are specified as: seqname[:STARTPOS[-ENDPOS]] e.g. 08:409282-429234"
+                     help = "Regions are specified as: seqname:STARTPOS-ENDPOS e.g. 08:409282-429234"
 )
 
 argv <- parse_args(argp)

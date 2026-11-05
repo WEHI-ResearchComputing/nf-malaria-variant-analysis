@@ -10,7 +10,7 @@ refDir <- file.path(
 # Check if the package is already installed
 if (!requireNamespace("BSgenome.PfalciparumDd2.PlasmoDB.57", quietly = TRUE)) {
   # If not installed, try to install it
-  install_local(path = refDir,dependencies = FALSE, INSTALL_opts = '--no-lock')
+  pak::pak(path = refDir,dependencies = FALSE, INSTALL_opts = '--no-lock')
 }
 #Check
 library("BSgenome.PfalciparumDd2.PlasmoDB.57",
