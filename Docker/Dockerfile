@@ -4,7 +4,7 @@ FROM continuumio/miniconda3:26.7.1
 RUN apt-get update && apt-get install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev libcurl4-openssl-dev libssl-dev libwebp-dev pkg-config gnupg r-base-dev -y && apt-get clean
 # install R + bioconductor packages
 RUN MAKE="make -j" Rscript -e 'install.packages(c("BiocManager", "devtools", "tidyverse", "argparser", "stringr", "readr", "scales", "gridExtra", "stringdist", "R6", "ggplot2"), repos="https://cloud.r-project.org/")'
-RUN MAKE="make -j" Rscript -e 'BiocManager::install(c("biobase", "biocparallel", "QDNAseq", "VariantAnnotation", "GenomeInfoDb", "SparseArray", "GenomicAlignments", "genomeIntervals", "StructuralVariantAnnotation", "rtracklayer")); devtools::install_github("Bioconductor/BSgenome@e89b08b590039643f8fe9f030c1948233de4f50f")'
+RUN MAKE="make -j" Rscript -e 'BiocManager::install(c("biobase", "biocparallel", "QDNAseq", "VariantAnnotation", "GenomeInfoDb", "SparseArray", "GenomicAlignments", "genomeIntervals", "StructuralVariantAnnotation", "rtracklayer")); devtools::install_github("Bioconductor/BSgenome@e89b08b590039643f8fe9f030c1948233de4f50f", upgrade = FALSE)'
 
 COPY BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz /tmp/BSgenome.Pfalciparum3D7.PlasmoDB.52.tar.gz
 COPY BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz /tmp/BSgenome.PfalciparumDd2.PlasmoDB.57.tar.gz
