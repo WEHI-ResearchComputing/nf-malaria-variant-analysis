@@ -1,0 +1,29 @@
+name: base
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - bcftools==1.13
+  - bwa==0.7.17
+  - samtools==1.16.1
+  - fastqc==0.11.8-0
+  - mosdepth==0.3.8
+  - multiqc==1.29
+  # r-base is pinned to 4.4.0 as later builds need zlib >=1.3, which conflicts with these bwa/samtools/bcftools versions
+  - r-base==4.4.0
+  # R package external dependencies
+  - fontconfig
+  - harfbuzz
+  - fribidi
+  - freetype
+  - libpng
+  - libtiff
+  - libjpeg-turbo
+  - libcurl
+  - openssl
+  - libwebp
+  - libxml2
+  - libuv
+  - pkg-config
+  - gnupg
+  - wget
