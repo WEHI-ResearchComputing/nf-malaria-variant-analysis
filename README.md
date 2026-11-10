@@ -23,7 +23,9 @@ This will use all config parameters found in `nextflow.config`.
 
 ## Format of metadata file
 
-It is a tab-delimited text file, with 5 columns. The columns are (`groupId`, `sampleId`, `fastqbase`, `ref`, `parentId`)
+It is a tab-delimited text file, with 5 columns. The columns are (`groupId`, `sampleId`, `fastqbase`, `ref`, `parentId`).
+There is a header row and a row for each sample.
+A sample can consist of 1 pair of fastq files or multiple pairs from different lanes.
 
 Example of metadata file with 2 groups. Group L-076R has a single parent sample; group L-492M has 2 parent samples.
 
@@ -38,9 +40,9 @@ DD2s	|DD2_1	|DD21_S13_L001	|Dd2		|
 DD2s	|DD2_2	|DD22_S14_L001	|Dd2		|
 
 ### **Notes**
-* `sampleid` must contain `groupid`
-* If parent is not a sample add a line with no parentid
-* fastqbase is the sequence fastq filename up to _R[12]
+* `sampleId` must contain `groupId`
+* parent samples must have no value for `parentId`
+* fastqbase is the sequence fastq filename up to read number `_R[12].*` or, if parameter merge_lanes is true, lane number `_L00[1-9]`
 
 ## References
 <a id="1">[1]</a>  Li H. A statistical framework for SNP calling, mutation discovery, association mapping and population genetical parameter estimation from sequencing data. Bioinformatics (2011) 27(21) 2987-93 https://www.htslib.org/
